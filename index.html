@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>rapidlog</title>
+<meta name="description" content="흑백 미니멀 불렛저널 · 로컬 저장 웹앱" />
+<meta name="theme-color" content="#1C1C1E" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="rapidlog" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <button id="menuBtn" class="icon-btn" aria-label="메뉴">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2 5H18M2 10H18M2 15H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+    <div class="title-block">
+      <h1 id="viewTitle">오늘 <span id="perfectBadge" class="gem-icon" hidden></span></h1>
+      <p id="viewSubtitle" class="meta-mono"></p>
+    </div>
+    <button id="todayBtn" class="icon-btn" aria-label="날짜 이동">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 8H17.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 2V4.5M13.5 2V4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+  </header>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="today">Today</button>
+    <button class="tab" data-view="monthly">Monthly</button>
+    <button class="tab" data-view="habits">Habits</button>
+  </nav>
+
+  <main id="main">
+
+    <!-- TODAY VIEW -->
+    <section id="view-today" class="view active">
+      <div id="overdueBlock" class="overdue-block" hidden>
+        <p class="section-label">밀린 항목</p>
+        <ul id="overdueList" class="rapid-list"></ul>
+      </div>
+
+      <ul id="rapidList" class="rapid-list"></ul>
+
+      <button id="addEntryBtn" class="add-row">
+        <span class="add-glyph">+</span> 새 항목 추가
+      </button>
+
+      <div class="gratitude-block">
+        <p class="section-label">오늘 감사한 일</p>
+        <textarea id="gratitudeInput" placeholder="한 줄이면 충분해" rows="2"></textarea>
+      </div>
+    </section>
+
+    <!-- MONTHLY VIEW -->
+    <section id="view-monthly" class="view">
+      <div class="month-nav">
+        <button id="prevMonth" class="icon-btn small">‹</button>
+        <span id="monthLabel" class="meta-mono"></span>
+        <button id="nextMonth" class="icon-btn small">›</button>
+      </div>
+
+      <div class="goal-section">
+        <div class="goal-section-head">
+          <p class="section-label">이번달 목표</p>
+          <button id="addGoalBtn" class="add-row small">+ 목표추가</button>
+        </div>
+        <div id="goalList" class="goal-list"></div>
+      </div>
+
+      <ul id="monthList" class="month-list"></ul>
+    </section>
+
+    <!-- HABITS VIEW -->
+    <section id="view-habits" class="view">
+      <button id="addHabitBtn" class="add-row">
+        <span class="add-glyph">+</span> 습관 추가
+      </button>
+      <div id="habitGrid" class="habit-grid"></div>
+    </section>
+
+  </main>
+
+  <!-- ADD ENTRY SHEET -->
+  <div id="entrySheet" class="sheet-overlay" hidden>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="type-picker" id="typePicker">
+        <button class="type-btn active" data-type="task">
+          <span class="glyph dot"></span> 할일
+        </button>
+        <button class="type-btn" data-type="note">
+          <span class="glyph dash"></span> 메모
+        </button>
+        <button class="type-btn" data-type="event">
+          <span class="glyph circle"></span> 이벤트
+        </button>
+        <button class="type-btn" data-type="goal">
+          <span class="glyph target"></span> 이번달 목표
+        </button>
+      </div>
+      <div id="goalPicker" class="goal-picker" hidden>
+        <p class="goal-picker-label">어떤 목표에 연결할까?</p>
+        <div id="goalPickerList" class="goal-picker-list"></div>
+      </div>
+      <input id="entryInput" class="sheet-input" type="text" placeholder="입력…" maxlength="200" />
+      <div class="sheet-actions">
+        <button id="cancelEntry" class="btn ghost">취소</button>
+        <button id="saveEntry" class="btn solid">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDE MENU -->
+  <div id="sideMenuOverlay" class="sheet-overlay" hidden>
+    <div class="side-menu">
+      <p class="section-label">rapidlog</p>
+      <button class="menu-item" data-view="today">Today</button>
+      <button class="menu-item" data-view="monthly">Monthly</button>
+      <button class="menu-item" data-view="habits">Habits</button>
+      <div class="menu-divider"></div>
+      <button id="exportBtn" class="menu-item">데이터 내보내기 (JSON)</button>
+      <button id="importBtn" class="menu-item">데이터 가져오기</button>
+      <input type="file" id="importFile" accept="application/json" hidden />
+      <div class="menu-divider"></div>
+      <p class="section-label">컬렉션</p>
+      <div class="collection-row">
+        <span class="gem-icon gem-c0" style="width:16px;height:16px;"></span>
+        <span id="gemCount" class="collection-count">0</span>
+        <span class="collection-label">개의 완벽한 하루</span>
+      </div>
+      <div class="menu-divider"></div>
+      <p class="menu-note">모든 데이터는 이 기기의 브라우저에만 저장돼. 앱 삭제/캐시 초기화 전에 내보내기로 백업해둬.</p>
+    </div>
+  </div>
+
+  <!-- DATE PICKER SHEET -->
+  <div id="datePickerSheet" class="sheet-overlay" hidden>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="month-nav">
+        <button id="dpPrevMonth" class="icon-btn small">‹</button>
+        <span id="dpMonthLabel" class="meta-mono"></span>
+        <button id="dpNextMonth" class="icon-btn small">›</button>
+      </div>
+      <div class="dp-dow-row">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div id="dpGrid" class="dp-grid"></div>
+      <div class="sheet-actions">
+        <button id="dpToday" class="btn ghost">오늘로 이동</button>
+        <button id="dpClose" class="btn solid">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOAL CREATE SHEET -->
+  <div id="goalSheet" class="sheet-overlay" hidden>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <input id="goalTitleInput" class="sheet-input" type="text" placeholder="목표 이름 (예: OO강의 듣기)" maxlength="60" />
+      <div class="goal-form-row">
+        <input id="goalTargetInput" class="sheet-input small-input" type="number" min="0" step="0.1" placeholder="목표 수치 (예: 60)" />
+        <input id="goalUnitInput" class="sheet-input small-input" type="text" placeholder="단위 (예: 강)" maxlength="10" />
+      </div>
+      <label class="goal-recurring-row">
+        <input id="goalRecurringInput" type="checkbox" />
+        <span>정기적인 할일이야 (달성해도 계속 진행)</span>
+      </label>
+      <div class="sheet-actions">
+        <button id="cancelGoal" class="btn ghost">취소</button>
+        <button id="saveGoal" class="btn solid">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOAL PROGRESS INPUT SHEET -->
+  <div id="goalProgressSheet" class="sheet-overlay" hidden>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <p id="goalProgressLabel" class="goal-picker-label"></p>
+      <input id="goalProgressInput" class="sheet-input" type="number" min="0" step="0.1" placeholder="이번에 채운 수치" />
+      <div class="sheet-actions">
+        <button id="cancelGoalProgress" class="btn ghost">취소</button>
+        <button id="saveGoalProgress" class="btn solid">완료 처리</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HABIT NAME SHEET -->
+  <div id="habitSheet" class="sheet-overlay" hidden>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <input id="habitInput" class="sheet-input" type="text" placeholder="습관 이름 (예: 물 2L 마시기)" maxlength="40" />
+      <div class="sheet-actions">
+        <button id="cancelHabit" class="btn ghost">취소</button>
+        <button id="saveHabit" class="btn solid">추가</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
