@@ -97,6 +97,16 @@
   const perfectBadge = $("#perfectBadge");
   const mainEl = $("#main");
   const rapidList = $("#rapidList");
+  makeSortable(rapidList, (newOrderIds) => {
+    const key = fmtKey(currentDate);
+    const arr = state.entries[key] || [];
+    const byId = Object.fromEntries(arr.map(it => [it.id, it]));
+    const reordered = newOrderIds.map(id => byId[id]).filter(Boolean);
+    // 안전장치: 혹시 누락된 항목 있으면 뒤에 붙임
+    arr.forEach(it => { if (!reordered.includes(it)) reordered.push(it); });
+    state.entries[key] = reordered;
+    save();
+  });
   const overdueBlock = $("#overdueBlock");
   const overdueList = $("#overdueList");
   const gratitudeInput = $("#gratitudeInput");
@@ -217,6 +227,8 @@
     const isTask = item.type === "task";
     const status = isTask ? item.status : null;
     li.className = "rapid-item" + (status === "done" ? " done" : "") + (status === "migrated" ? " migrated" : "");
+    const draggable = !showMigrateIn;
+    if (draggable) li.dataset.id = item.id;
     const metaBits = [];
     if (showMigrateIn) metaBits.push(keyToDate(dateKey).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" }));
 
@@ -230,6 +242,8 @@
       if (g) goalTagHtml = `<span class="goal-tag">${escapeHtml(g.title)}</span>`;
     }
 
+    const dragHandleHtml = draggable ? `<button class="drag-handle" aria-label="순서변경">⠿</button>` : "";
+
     li.innerHTML = `
       <button class="glyph-btn" data-action="toggle" data-id="${item.id}" data-key="${dateKey}">${glyphFor(item.type, status)}</button>
       <div class="body">
@@ -239,6 +253,7 @@
         </div>
         ${metaBits.length ? `<div class="meta-row"><span>${metaBits.join(" · ")}</span></div>` : ""}
       </div>
+      ${dragHandleHtml}
       ${showMigrateIn ? `<button class="del-btn" data-action="migrate-in" data-id="${item.id}" data-key="${dateKey}" title="오늘로 이동">→</button>` : `<button class="del-btn" data-action="delete" data-id="${item.id}" data-key="${dateKey}">×</button>`}
     `;
 
@@ -253,6 +268,49 @@
     }
 
     return li;
+  }
+
+  function makeSortable(listEl, onReorder) {
+    let dragEl = null;
+
+    listEl.addEventListener("pointerdown", (e) => {
+      const handle = e.target.closest(".drag-handle");
+      if (!handle) return;
+      const li = handle.closest("li.rapid-item");
+      if (!li || !li.dataset.id) return;
+      e.preventDefault();
+      dragEl = li;
+      dragEl.classList.add("dragging");
+      try { dragEl.setPointerCapture(e.pointerId); } catch (err) {}
+
+      const onMove = (ev) => {
+        if (!dragEl) return;
+        const y = ev.clientY;
+        const siblings = [...listEl.querySelectorAll("li.rapid-item[data-id]:not(.dragging)")];
+        let next = null;
+        for (const sib of siblings) {
+          const rect = sib.getBoundingClientRect();
+          if (y < rect.top + rect.height / 2) { next = sib; break; }
+        }
+        if (next) listEl.insertBefore(dragEl, next);
+        else listEl.appendChild(dragEl);
+      };
+      const onUp = (ev) => {
+        if (dragEl) {
+          dragEl.classList.remove("dragging");
+          try { dragEl.releasePointerCapture(ev.pointerId); } catch (err) {}
+        }
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onUp);
+        const newOrder = [...listEl.querySelectorAll("li.rapid-item[data-id]")].map(el => el.dataset.id);
+        dragEl = null;
+        onReorder(newOrder);
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+    });
   }
 
   function attachLongPress(el, onLongPress) {
@@ -542,7 +600,7 @@
     }
     goals.forEach(g => {
       const pct = g.target > 0 ? ((g.progress || 0) / g.target) * 100 : 0;
-      const over = pct > 100;
+      const over = pct >= 100;
       const div = document.createElement("div");
       div.className = "goal-item";
       div.innerHTML = `
@@ -553,7 +611,7 @@
         <div class="goal-item-bar"><div class="goal-item-bar-fill ${over ? "over" : ""}" style="width:${Math.min(pct, 100)}%"></div></div>
         <div class="goal-item-meta">
           <span>${g.progress || 0} / ${g.target}${g.unit ? escapeHtml(g.unit) : ""}</span>
-          <span class="${over ? "over-text" : ""}">${over ? `초과달성 +${Math.round((pct - 100) * 10) / 10}%` : `${Math.round(pct * 10) / 10}%`}</span>
+          <span class="${over ? "over-text" : ""}">${pct > 100 ? `초과달성 +${Math.round((pct - 100) * 10) / 10}%` : `${Math.round(pct * 10) / 10}%${pct >= 100 ? " 달성" : ""}`}</span>
         </div>
       `;
       goalList.appendChild(div);
