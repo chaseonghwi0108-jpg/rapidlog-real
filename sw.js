@@ -1,4 +1,4 @@
-const CACHE_NAME = "rapidlog-v2";
+const CACHE_NAME = "rapidlog-v3";
 const ASSETS = [
   "./",
   "./style.css",
@@ -10,7 +10,11 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(ASSETS.map((url) =>
+        fetch(url, { cache: "reload" }).then((res) => cache.put(url, res)).catch(() => {})
+      ))
+    ).then(() => self.skipWaiting())
   );
 });
 
