@@ -624,7 +624,7 @@
   }
 
   ["breakfast", "lunch", "dinner"].forEach(meal => {
-    dietFields[meal].time.addEventListener("change", () => saveDietField(meal, "time", dietFields[meal].time.value));
+    dietFields[meal].time.addEventListener("blur", () => saveDietField(meal, "time", dietFields[meal].time.value.trim()));
     dietFields[meal].food.addEventListener("blur", () => saveDietField(meal, "food", dietFields[meal].food.value.trim()));
   });
 
@@ -640,28 +640,36 @@
   });
 
   function renderDietSummary() {
-    const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
-    const prefix = `${y}-${String(m + 1).padStart(2, "0")}-`;
-    const keys = Object.keys(state.diet).filter(k => k.startsWith(prefix) && state.diet[k]).sort();
     dietSummarySection.innerHTML = "";
-    if (keys.length === 0) {
-      dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
-      return;
+    try {
+      const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
+      const prefix = `${y}-${String(m + 1).padStart(2, "0")}-`;
+      const keys = Object.keys(state.diet || {}).filter(k => k.startsWith(prefix) && state.diet[k]).sort();
+      if (keys.length === 0) {
+        dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
+        return;
+      }
+      let any = false;
+      keys.forEach(k => {
+        const day = state.diet[k];
+        const parts = ["breakfast", "lunch", "dinner"].map(meal => {
+          const mm = day[meal];
+          if (!mm || (!mm.time && !mm.food)) return null;
+          return `${mm.time ? mm.time + " " : ""}${mm.food || ""}`.trim();
+        }).filter(Boolean);
+        if (parts.length === 0) return;
+        any = true;
+        const date = keyToDate(k);
+        const row = document.createElement("div");
+        row.className = "diet-summary-row";
+        row.innerHTML = `<span class="d-date">${date.getDate()}일</span><span class="d-meals">${parts.map(escapeHtml).join(" · ")}</span>`;
+        dietSummarySection.appendChild(row);
+      });
+      if (!any) dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
+    } catch (e) {
+      console.error("renderDietSummary failed", e);
+      dietSummarySection.innerHTML = `<p class="diet-summary-empty">식단 요약을 불러오는데 문제가 생겼어.</p>`;
     }
-    keys.forEach(k => {
-      const day = state.diet[k];
-      const parts = ["breakfast", "lunch", "dinner"].map(meal => {
-        const mm = day[meal];
-        if (!mm || (!mm.time && !mm.food)) return null;
-        return `${mm.time ? mm.time + " " : ""}${mm.food || ""}`.trim();
-      }).filter(Boolean);
-      if (parts.length === 0) return;
-      const date = keyToDate(k);
-      const row = document.createElement("div");
-      row.className = "diet-summary-row";
-      row.innerHTML = `<span class="d-date">${date.getDate()}일</span><span class="d-meals">${parts.map(escapeHtml).join(" · ")}</span>`;
-      dietSummarySection.appendChild(row);
-    });
   }
 
   // ---------- MONTHLY GOALS ----------

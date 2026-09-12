@@ -79,7 +79,7 @@
 
       <div class="diet-summary-section">
         <button id="toggleDietSummary" class="goal-section-head diet-summary-toggle">
-          <p class="section-label">이번달 식단 <span id="dietSummaryChevron">▸</span></p>
+          <span class="section-label">이번달 식단 <span id="dietSummaryChevron">▸</span></span>
         </button>
         <div id="dietSummaryList" class="diet-summary-list" hidden></div>
       </div>
@@ -101,21 +101,21 @@
       <div class="diet-meal-card" data-meal="breakfast">
         <div class="diet-meal-label">아침</div>
         <div class="diet-meal-fields">
-          <input id="dietBreakfastTime" class="diet-time-input" type="time" />
+          <input id="dietBreakfastTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
           <input id="dietBreakfastFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
         </div>
       </div>
       <div class="diet-meal-card" data-meal="lunch">
         <div class="diet-meal-label">점심</div>
         <div class="diet-meal-fields">
-          <input id="dietLunchTime" class="diet-time-input" type="time" />
+          <input id="dietLunchTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
           <input id="dietLunchFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
         </div>
       </div>
       <div class="diet-meal-card" data-meal="dinner">
         <div class="diet-meal-label">저녁</div>
         <div class="diet-meal-fields">
-          <input id="dietDinnerTime" class="diet-time-input" type="time" />
+          <input id="dietDinnerTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
           <input id="dietDinnerFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
         </div>
       </div>
