@@ -6,7 +6,7 @@
   const GEM_CLASSES = ["gem-c0", "gem-c1", "gem-c2", "gem-c3"];
 
   // ---------- STATE ----------
-  const defaultState = () => ({ entries: {}, gratitude: {}, habits: [], habitLogs: {}, completedDays: {}, monthlyGoals: {}, diet: {} });
+  const defaultState = () => ({ entries: {}, gratitude: {}, habits: [], habitLogs: {}, completedDays: {}, monthlyGoals: {} });
 
   let state = load();
   let currentView = "today";
@@ -143,6 +143,46 @@
     if (gemCountEl) gemCountEl.textContent = Object.keys(state.completedDays).length;
   }
 
+  const gemVaultOverlay = $("#gemVaultOverlay");
+  const gemVaultGrid = $("#gemVaultGrid");
+  const gemVaultCount = $("#gemVaultCount");
+  const gemVaultSelectedInfo = $("#gemVaultSelectedInfo");
+
+  function renderGemVault() {
+    const keys = Object.keys(state.completedDays).sort().reverse();
+    gemVaultCount.textContent = keys.length;
+    gemVaultSelectedInfo.textContent = "";
+    gemVaultGrid.innerHTML = "";
+    if (keys.length === 0) {
+      gemVaultGrid.innerHTML = `<p style="color:var(--ink-faint);font-size:13px;">아직 모은 보석이 없어. 하루를 완벽하게 채워봐.</p>`;
+      return;
+    }
+    keys.forEach(key => {
+      const btn = document.createElement("button");
+      btn.className = "gem-vault-item";
+      btn.dataset.key = key;
+      btn.innerHTML = `<span class="gem-icon ${gemClassForKey(key)}"></span>`;
+      gemVaultGrid.appendChild(btn);
+    });
+  }
+
+  gemVaultGrid.addEventListener("click", (e) => {
+    const item = e.target.closest(".gem-vault-item");
+    if (!item) return;
+    const date = keyToDate(item.dataset.key);
+    gemVaultSelectedInfo.textContent = date.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }) + "의 보석";
+    gemVaultGrid.querySelectorAll(".gem-vault-item.selected").forEach(el => el.classList.remove("selected"));
+    item.classList.add("selected");
+  });
+
+  $("#openGemVault").addEventListener("click", () => {
+    closeAllOverlays();
+    renderGemVault();
+    gemVaultOverlay.hidden = false;
+  });
+  $("#closeGemVault").addEventListener("click", () => gemVaultOverlay.hidden = true);
+  gemVaultOverlay.addEventListener("click", (e) => { if (e.target === gemVaultOverlay) gemVaultOverlay.hidden = true; });
+
   // ---------- VIEW SWITCH ----------
   function switchView(view) {
     currentView = view;
@@ -157,13 +197,12 @@
     }
     if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; renderMonthly(); }
     if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; renderHabits(); }
-    if (view === "diet") { titleTextNode.textContent = "식단 "; perfectBadge.hidden = true; renderDiet(); }
     updateSubtitle();
     updateGemCountUI();
   }
 
   function updateSubtitle() {
-    if (currentView === "today" || currentView === "diet") {
+    if (currentView === "today") {
       viewSubtitle.textContent = currentDate.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
     } else {
       viewSubtitle.textContent = "";
@@ -560,7 +599,6 @@
   function renderMonthly() {
     monthLabel.textContent = monthCursor.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
     renderMonthlyGoals();
-    if (dietSummaryOpen) renderDietSummary();
     monthList.innerHTML = "";
     const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -590,87 +628,6 @@
 
   $("#prevMonth").addEventListener("click", () => { monthCursor.setMonth(monthCursor.getMonth() - 1); renderMonthly(); });
   $("#nextMonth").addEventListener("click", () => { monthCursor.setMonth(monthCursor.getMonth() + 1); renderMonthly(); });
-
-  // ---------- DIET VIEW ----------
-  const dietDateLabel = $("#dietDateLabel");
-  const dietFields = {
-    breakfast: { time: $("#dietBreakfastTime"), food: $("#dietBreakfastFood") },
-    lunch: { time: $("#dietLunchTime"), food: $("#dietLunchFood") },
-    dinner: { time: $("#dietDinnerTime"), food: $("#dietDinnerFood") },
-  };
-
-  function renderDiet() {
-    const key = fmtKey(currentDate);
-    dietDateLabel.textContent = currentDate.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
-    const d = state.diet[key] || {};
-    ["breakfast", "lunch", "dinner"].forEach(meal => {
-      dietFields[meal].time.value = (d[meal] && d[meal].time) || "";
-      dietFields[meal].food.value = (d[meal] && d[meal].food) || "";
-    });
-  }
-
-  function saveDietField(meal, field, value) {
-    const key = fmtKey(currentDate);
-    state.diet[key] = state.diet[key] || {};
-    state.diet[key][meal] = state.diet[key][meal] || { time: "", food: "" };
-    state.diet[key][meal][field] = value;
-    // 세 끼 다 비어있으면 그 날짜 자체를 정리
-    const day = state.diet[key];
-    const isEmptyMeal = m => !day[m] || (!day[m].time && !day[m].food);
-    if (isEmptyMeal("breakfast") && isEmptyMeal("lunch") && isEmptyMeal("dinner")) {
-      delete state.diet[key];
-    }
-    save();
-  }
-
-  ["breakfast", "lunch", "dinner"].forEach(meal => {
-    dietFields[meal].time.addEventListener("blur", () => saveDietField(meal, "time", dietFields[meal].time.value.trim()));
-    dietFields[meal].food.addEventListener("blur", () => saveDietField(meal, "food", dietFields[meal].food.value.trim()));
-  });
-
-  const dietSummarySection = $("#dietSummaryList");
-  const dietSummaryChevron = $("#dietSummaryChevron");
-  let dietSummaryOpen = false;
-
-  $("#toggleDietSummary").addEventListener("click", () => {
-    dietSummaryOpen = !dietSummaryOpen;
-    dietSummarySection.hidden = !dietSummaryOpen;
-    dietSummaryChevron.textContent = dietSummaryOpen ? "▾" : "▸";
-    if (dietSummaryOpen) renderDietSummary();
-  });
-
-  function renderDietSummary() {
-    dietSummarySection.innerHTML = "";
-    try {
-      const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
-      const prefix = `${y}-${String(m + 1).padStart(2, "0")}-`;
-      const keys = Object.keys(state.diet || {}).filter(k => k.startsWith(prefix) && state.diet[k]).sort();
-      if (keys.length === 0) {
-        dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
-        return;
-      }
-      let any = false;
-      keys.forEach(k => {
-        const day = state.diet[k];
-        const parts = ["breakfast", "lunch", "dinner"].map(meal => {
-          const mm = day[meal];
-          if (!mm || (!mm.time && !mm.food)) return null;
-          return `${mm.time ? mm.time + " " : ""}${mm.food || ""}`.trim();
-        }).filter(Boolean);
-        if (parts.length === 0) return;
-        any = true;
-        const date = keyToDate(k);
-        const row = document.createElement("div");
-        row.className = "diet-summary-row";
-        row.innerHTML = `<span class="d-date">${date.getDate()}일</span><span class="d-meals">${parts.map(escapeHtml).join(" · ")}</span>`;
-        dietSummarySection.appendChild(row);
-      });
-      if (!any) dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
-    } catch (e) {
-      console.error("renderDietSummary failed", e);
-      dietSummarySection.innerHTML = `<p class="diet-summary-empty">식단 요약을 불러오는데 문제가 생겼어.</p>`;
-    }
-  }
 
   // ---------- MONTHLY GOALS ----------
   function renderMonthlyGoals() {
@@ -778,6 +735,8 @@
   });
 
   // ---------- HABITS VIEW ----------
+  const habitMonthState = {}; // "habitId:YYYY-MM" -> true/false(펼침 여부), 없으면 기본값 사용
+
   function renderHabits() {
     habitGrid.innerHTML = "";
     if (state.habits.length === 0) {
@@ -785,29 +744,90 @@
       return;
     }
     const today = new Date();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const curMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
     state.habits.forEach(h => {
       const card = document.createElement("div");
       card.className = "habit-card";
       const log = state.habitLogs[h.id] || {};
-      let cellsHtml = "";
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(today.getFullYear(), today.getMonth(), d);
-        const key = fmtKey(date);
-        const future = date > today;
-        const filled = !!log[key];
-        cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일"></div>`;
+      const startDate = h.startDate ? keyToDate(h.startDate) : today;
+      const duration = h.duration || 30;
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + duration - 1);
+
+      let monthsHtml = "";
+      let filledCount = 0, elapsed = 0;
+
+      if (startDate > today) {
+        monthsHtml = `<p class="habit-not-started">${startDate.toLocaleDateString("ko-KR", { month: "long", day: "numeric" })}부터 시작 예정</p>`;
+      } else {
+        const cappedEnd = endDate < today ? endDate : today;
+        const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const lastMonth = new Date(cappedEnd.getFullYear(), cappedEnd.getMonth(), 1);
+
+        while (cursor <= lastMonth) {
+          const y = cursor.getFullYear(), mo = cursor.getMonth();
+          const monthKey = `${y}-${String(mo + 1).padStart(2, "0")}`;
+          const daysInThisMonth = new Date(y, mo + 1, 0).getDate();
+          const dayStart = (y === startDate.getFullYear() && mo === startDate.getMonth()) ? startDate.getDate() : 1;
+          let dayEnd = daysInThisMonth;
+          if (y === endDate.getFullYear() && mo === endDate.getMonth()) dayEnd = Math.min(dayEnd, endDate.getDate());
+
+          let cellsHtml = "";
+          let monthFilled = 0, monthAttempt = 0;
+          for (let d = dayStart; d <= dayEnd; d++) {
+            const date = new Date(y, mo, d);
+            const key = fmtKey(date);
+            const future = date > today;
+            const filled = !!log[key];
+            if (!future) { monthAttempt++; elapsed++; if (filled) { monthFilled++; filledCount++; } }
+            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일"></div>`;
+          }
+
+          const stateKey = `${h.id}:${monthKey}`;
+          const isCur = monthKey === curMonthKey;
+          const expanded = habitMonthState.hasOwnProperty(stateKey) ? habitMonthState[stateKey] : isCur;
+
+          monthsHtml += `
+            <div class="habit-month-block">
+              <button class="habit-month-toggle" data-toggle-month="${stateKey}">
+                <span class="habit-month-label">${y}년 ${mo + 1}월</span>
+                <span class="habit-month-stat">${monthFilled}/${monthAttempt}</span>
+                <span class="habit-month-chevron">${expanded ? "▾" : "▸"}</span>
+              </button>
+              <div class="habit-days" ${expanded ? "" : "hidden"}>${cellsHtml}</div>
+            </div>
+          `;
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
       }
+
+      const rangeLabel = `${startDate.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })} ~ ${endDate.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })} · ${duration}일`;
+
       card.innerHTML = `
-        <div class="habit-name">${escapeHtml(h.name)} <button class="del-btn" data-del-habit="${h.id}">×</button></div>
-        <div class="habit-days">${cellsHtml}</div>
+        <div class="habit-name">
+          <span>${escapeHtml(h.name)}</span>
+          <button class="del-btn" data-del-habit="${h.id}">×</button>
+        </div>
+        <div class="habit-meta-row">
+          <span class="habit-range">${rangeLabel}</span>
+          <span class="habit-progress">${filledCount}/${elapsed}일</span>
+        </div>
+        ${monthsHtml}
       `;
       habitGrid.appendChild(card);
     });
   }
 
   habitGrid.addEventListener("click", (e) => {
+    const toggleBtn = e.target.closest("[data-toggle-month]");
+    if (toggleBtn) {
+      const key = toggleBtn.dataset.toggleMonth;
+      const daysEl = toggleBtn.closest(".habit-month-block").querySelector(".habit-days");
+      habitMonthState[key] = !!daysEl.hidden;
+      renderHabits();
+      return;
+    }
     const cell = e.target.closest(".habit-cell");
     if (cell && !cell.classList.contains("future")) {
       const { habit, key } = cell.dataset;
@@ -829,13 +849,26 @@
 
   const habitSheet = $("#habitSheet");
   const habitInput = $("#habitInput");
-  $("#addHabitBtn").addEventListener("click", () => { closeAllOverlays(); habitInput.value = ""; habitSheet.hidden = false; setTimeout(() => habitInput.focus(), 50); });
+  const habitStartInput = $("#habitStartInput");
+  const habitDurationInput = $("#habitDurationInput");
+  $("#addHabitBtn").addEventListener("click", () => {
+    closeAllOverlays();
+    habitInput.value = "";
+    habitStartInput.value = fmtKey(new Date());
+    habitDurationInput.value = "30";
+    habitSheet.hidden = false;
+    setTimeout(() => habitInput.focus(), 50);
+  });
   $("#cancelHabit").addEventListener("click", () => habitSheet.hidden = true);
   habitSheet.addEventListener("click", (e) => { if (e.target === habitSheet) habitSheet.hidden = true; });
   $("#saveHabit").addEventListener("click", () => {
     const name = habitInput.value.trim();
     if (!name) return;
-    state.habits.push({ id: uid(), name });
+    const startDate = habitStartInput.value || fmtKey(new Date());
+    let duration = parseInt(habitDurationInput.value, 10);
+    if (!duration || duration < 1) duration = 30;
+    if (duration > 365) duration = 365;
+    state.habits.push({ id: uid(), name, startDate, duration });
     save();
     habitSheet.hidden = true;
     renderHabits();

@@ -320,61 +320,9 @@ main {
 .goal-recurring-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); margin: 4px 2px 14px; }
 .goal-recurring-row input { width: 16px; height: 16px; }
 
-/* ---------- DIET ---------- */
-.diet-meal-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  margin-bottom: 12px;
-}
-.diet-meal-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
-.diet-meal-fields { display: flex; gap: 8px; }
-.diet-time-input {
-  flex: 0 0 84px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 8px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.diet-food-input {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  background: var(--surface);
-  color: var(--ink);
-}
+.habit-field-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.habit-field-label { font-size: 11.5px; color: var(--ink-faint); }
 
-.diet-summary-section { margin-bottom: 18px; }
-.diet-summary-toggle {
-  width: 100%;
-  background: none;
-  border: none;
-  text-align: left;
-  padding: 0;
-  cursor: pointer;
-}
-.diet-summary-toggle .section-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.diet-summary-list { display: flex; flex-direction: column; gap: 6px; }
-.diet-summary-list[hidden] { display: none; }
-.diet-summary-row {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 12.5px;
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-}
-.diet-summary-row .d-date { font-family: var(--font-mono); font-weight: 600; flex-shrink: 0; }
-.diet-summary-row .d-meals { color: var(--ink-soft); }
-.diet-summary-empty { font-size: 12.5px; color: var(--ink-faint); }
 
 /* ---------- GRATITUDE ---------- */
 .gratitude-block { margin-top: 26px; }
@@ -450,7 +398,7 @@ main {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 14.5px;
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -460,21 +408,68 @@ main {
   background: none; border: none; color: var(--ink-faint); font-size: 16px; cursor: pointer;
 }
 
+.habit-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+.habit-meta-row .habit-progress { color: var(--accent); font-weight: 600; }
+
+.habit-not-started { font-size: 12.5px; color: var(--ink-faint); padding: 6px 0; }
+
+.habit-month-block { margin-bottom: 10px; }
+.habit-month-block:last-child { margin-bottom: 0; }
+.habit-month-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+.habit-month-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.habit-month-stat { font-size: 11px; color: var(--ink-faint); }
+.habit-month-chevron { margin-left: auto; color: var(--ink-faint); font-size: 11px; }
+
 .habit-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: 6px;
+  padding-top: 4px;
 }
 
 .habit-cell {
   aspect-ratio: 1;
-  border-radius: 5px;
-  background: var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
   cursor: pointer;
   position: relative;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
 }
-.habit-cell.filled { background: var(--habit-fill); }
-.habit-cell.future { background: transparent; cursor: default; }
+.habit-cell:active { transform: scale(0.88); }
+.habit-cell.filled {
+  background: linear-gradient(150deg, #6F7EF2, var(--accent) 60%, #38439F);
+  border-color: transparent;
+  box-shadow: 0 2px 5px rgba(76,95,232,0.35);
+}
+.habit-cell.filled::after {
+  content: "";
+  position: absolute;
+  top: 12%; left: 16%;
+  width: 34%; height: 34%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  filter: blur(0.5px);
+}
+.habit-cell.future { background: transparent; border-style: dashed; border-color: var(--border); cursor: default; }
 .habit-cell.is-today { outline: 1.5px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- SHEETS / OVERLAY ---------- */
@@ -660,19 +655,82 @@ main {
 /* ---------- GEM / COLLECTIBLE ---------- */
 .gem-icon {
   display: inline-block;
-  width: 13px; height: 13px;
-  clip-path: polygon(50% 0%, 100% 35%, 82% 100%, 18% 100%, 0% 35%);
+  position: relative;
+  overflow: hidden;
+  width: 14px; height: 14px;
+  clip-path: polygon(50% 0%, 85% 32%, 100% 38%, 68% 100%, 32% 100%, 0% 38%, 15% 32%);
   vertical-align: middle;
   margin-left: 2px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.22));
 }
-.gem-c0 { background: linear-gradient(160deg, #7C8CF0, var(--accent)); }
-.gem-c1 { background: linear-gradient(160deg, #F3C36E, var(--star)); }
-.gem-c2 { background: linear-gradient(160deg, #6FCB9F, #2FA36B); }
-.gem-c3 { background: linear-gradient(160deg, #E888AE, #D6467B); }
+.gem-icon::before {
+  /* 상단 크라운 페이싯 하이라이트 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.05) 30%, rgba(0,0,0,0.12) 100%);
+}
+.gem-icon::after {
+  /* 반짝이는 사선 하이라이트 줄기 */
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -30%;
+  width: 45%;
+  height: 220%;
+  background: linear-gradient(115deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 65%);
+  transform: rotate(18deg);
+}
+.gem-c0 { background: linear-gradient(160deg, #8C9BFF, #4C5FE8 55%, #2E3BAE); }
+.gem-c1 { background: linear-gradient(160deg, #FFD98A, #E8A33D 55%, #B9791F); }
+.gem-c2 { background: linear-gradient(160deg, #8FE3B9, #2FA36B 55%, #1E7A4E); }
+.gem-c3 { background: linear-gradient(160deg, #F5A8C6, #D6467B 55%, #A6305C); }
 
-.collection-row { display: flex; align-items: center; gap: 6px; padding: 4px; }
+#perfectBadge.gem-icon { width: 18px; height: 18px; margin-left: 4px; animation: gemPulse 2.4s ease-in-out infinite; }
+@keyframes gemPulse {
+  0%, 100% { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.22)) drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  50% { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.22)) drop-shadow(0 0 6px rgba(255,255,255,0.55)); }
+}
+
+.collection-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
 .collection-count { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .collection-label { font-size: 13px; color: var(--ink-soft); }
+.collection-arrow { margin-left: auto; color: var(--ink-faint); font-size: 16px; }
+
+/* ---------- GEM VAULT ---------- */
+.gem-vault-sheet { max-height: 82vh; display: flex; flex-direction: column; }
+.gem-vault-selected { font-size: 12.5px; color: var(--ink-soft); min-height: 16px; margin: 2px 0 10px; }
+.gem-vault-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px 8px;
+  overflow-y: auto;
+  padding: 4px 2px 10px;
+}
+.gem-vault-item {
+  background: none;
+  border: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.gem-vault-item .gem-icon { width: 30px; height: 30px; }
+.gem-vault-item.selected { background: var(--accent-soft); }
+.gem-vault-item:active { transform: scale(0.92); }
 
 /* ---------- PERFECT DAY EFFECT ---------- */
 main.day-complete {

@@ -37,7 +37,6 @@
     <button class="tab active" data-view="today">Today</button>
     <button class="tab" data-view="monthly">Monthly</button>
     <button class="tab" data-view="habits">Habits</button>
-    <button class="tab" data-view="diet">Diet</button>
   </nav>
 
   <main id="main">
@@ -77,13 +76,6 @@
         <div id="goalList" class="goal-list"></div>
       </div>
 
-      <div class="diet-summary-section">
-        <button id="toggleDietSummary" class="goal-section-head diet-summary-toggle">
-          <span class="section-label">이번달 식단 <span id="dietSummaryChevron">▸</span></span>
-        </button>
-        <div id="dietSummaryList" class="diet-summary-list" hidden></div>
-      </div>
-
       <ul id="monthList" class="month-list"></ul>
     </section>
 
@@ -93,32 +85,6 @@
         <span class="add-glyph">+</span> 습관 추가
       </button>
       <div id="habitGrid" class="habit-grid"></div>
-    </section>
-
-    <!-- DIET VIEW -->
-    <section id="view-diet" class="view">
-      <p id="dietDateLabel" class="meta-mono" style="margin-bottom:14px;"></p>
-      <div class="diet-meal-card" data-meal="breakfast">
-        <div class="diet-meal-label">아침</div>
-        <div class="diet-meal-fields">
-          <input id="dietBreakfastTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
-          <input id="dietBreakfastFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
-        </div>
-      </div>
-      <div class="diet-meal-card" data-meal="lunch">
-        <div class="diet-meal-label">점심</div>
-        <div class="diet-meal-fields">
-          <input id="dietLunchTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
-          <input id="dietLunchFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
-        </div>
-      </div>
-      <div class="diet-meal-card" data-meal="dinner">
-        <div class="diet-meal-label">저녁</div>
-        <div class="diet-meal-fields">
-          <input id="dietDinnerTime" class="diet-time-input" type="text" placeholder="시각" maxlength="12" />
-          <input id="dietDinnerFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
-        </div>
-      </div>
     </section>
 
   </main>
@@ -160,20 +126,33 @@
       <button class="menu-item" data-view="today">Today</button>
       <button class="menu-item" data-view="monthly">Monthly</button>
       <button class="menu-item" data-view="habits">Habits</button>
-      <button class="menu-item" data-view="diet">Diet</button>
       <div class="menu-divider"></div>
       <button id="exportBtn" class="menu-item">데이터 내보내기 (JSON)</button>
       <button id="importBtn" class="menu-item">데이터 가져오기</button>
       <input type="file" id="importFile" accept="application/json" hidden />
       <div class="menu-divider"></div>
       <p class="section-label">컬렉션</p>
-      <div class="collection-row">
+      <button id="openGemVault" class="collection-row">
         <span class="gem-icon gem-c0" style="width:16px;height:16px;"></span>
         <span id="gemCount" class="collection-count">0</span>
         <span class="collection-label">개의 완벽한 하루</span>
-      </div>
+        <span class="collection-arrow">›</span>
+      </button>
       <div class="menu-divider"></div>
       <p class="menu-note">모든 데이터는 이 기기의 브라우저에만 저장돼. 앱 삭제/캐시 초기화 전에 내보내기로 백업해둬.</p>
+    </div>
+  </div>
+
+  <!-- GEM VAULT -->
+  <div id="gemVaultOverlay" class="sheet-overlay" hidden>
+    <div class="sheet gem-vault-sheet">
+      <div class="sheet-handle"></div>
+      <p class="section-label">보석함 · <span id="gemVaultCount">0</span>개</p>
+      <p id="gemVaultSelectedInfo" class="gem-vault-selected"></p>
+      <div id="gemVaultGrid" class="gem-vault-grid"></div>
+      <div class="sheet-actions">
+        <button id="closeGemVault" class="btn solid">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -235,6 +214,16 @@
     <div class="sheet">
       <div class="sheet-handle"></div>
       <input id="habitInput" class="sheet-input" type="text" placeholder="습관 이름 (예: 물 2L 마시기)" maxlength="40" />
+      <div class="goal-form-row">
+        <div class="habit-field-col">
+          <label class="habit-field-label">시작일</label>
+          <input id="habitStartInput" class="sheet-input" type="date" />
+        </div>
+        <div class="habit-field-col">
+          <label class="habit-field-label">기간 (일, 최대 365)</label>
+          <input id="habitDurationInput" class="sheet-input" type="number" min="1" max="365" placeholder="예: 30" />
+        </div>
+      </div>
       <div class="sheet-actions">
         <button id="cancelHabit" class="btn ghost">취소</button>
         <button id="saveHabit" class="btn solid">추가</button>
