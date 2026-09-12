@@ -6,7 +6,7 @@
   const GEM_CLASSES = ["gem-c0", "gem-c1", "gem-c2", "gem-c3"];
 
   // ---------- STATE ----------
-  const defaultState = () => ({ entries: {}, gratitude: {}, habits: [], habitLogs: {}, completedDays: {}, monthlyGoals: {} });
+  const defaultState = () => ({ entries: {}, gratitude: {}, habits: [], habitLogs: {}, completedDays: {}, monthlyGoals: {}, diet: {} });
 
   let state = load();
   let currentView = "today";
@@ -157,12 +157,13 @@
     }
     if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; renderMonthly(); }
     if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; renderHabits(); }
+    if (view === "diet") { titleTextNode.textContent = "식단 "; perfectBadge.hidden = true; renderDiet(); }
     updateSubtitle();
     updateGemCountUI();
   }
 
   function updateSubtitle() {
-    if (currentView === "today") {
+    if (currentView === "today" || currentView === "diet") {
       viewSubtitle.textContent = currentDate.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
     } else {
       viewSubtitle.textContent = "";
@@ -559,6 +560,7 @@
   function renderMonthly() {
     monthLabel.textContent = monthCursor.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
     renderMonthlyGoals();
+    if (dietSummaryOpen) renderDietSummary();
     monthList.innerHTML = "";
     const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -588,6 +590,79 @@
 
   $("#prevMonth").addEventListener("click", () => { monthCursor.setMonth(monthCursor.getMonth() - 1); renderMonthly(); });
   $("#nextMonth").addEventListener("click", () => { monthCursor.setMonth(monthCursor.getMonth() + 1); renderMonthly(); });
+
+  // ---------- DIET VIEW ----------
+  const dietDateLabel = $("#dietDateLabel");
+  const dietFields = {
+    breakfast: { time: $("#dietBreakfastTime"), food: $("#dietBreakfastFood") },
+    lunch: { time: $("#dietLunchTime"), food: $("#dietLunchFood") },
+    dinner: { time: $("#dietDinnerTime"), food: $("#dietDinnerFood") },
+  };
+
+  function renderDiet() {
+    const key = fmtKey(currentDate);
+    dietDateLabel.textContent = currentDate.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+    const d = state.diet[key] || {};
+    ["breakfast", "lunch", "dinner"].forEach(meal => {
+      dietFields[meal].time.value = (d[meal] && d[meal].time) || "";
+      dietFields[meal].food.value = (d[meal] && d[meal].food) || "";
+    });
+  }
+
+  function saveDietField(meal, field, value) {
+    const key = fmtKey(currentDate);
+    state.diet[key] = state.diet[key] || {};
+    state.diet[key][meal] = state.diet[key][meal] || { time: "", food: "" };
+    state.diet[key][meal][field] = value;
+    // 세 끼 다 비어있으면 그 날짜 자체를 정리
+    const day = state.diet[key];
+    const isEmptyMeal = m => !day[m] || (!day[m].time && !day[m].food);
+    if (isEmptyMeal("breakfast") && isEmptyMeal("lunch") && isEmptyMeal("dinner")) {
+      delete state.diet[key];
+    }
+    save();
+  }
+
+  ["breakfast", "lunch", "dinner"].forEach(meal => {
+    dietFields[meal].time.addEventListener("change", () => saveDietField(meal, "time", dietFields[meal].time.value));
+    dietFields[meal].food.addEventListener("blur", () => saveDietField(meal, "food", dietFields[meal].food.value.trim()));
+  });
+
+  const dietSummarySection = $("#dietSummaryList");
+  const dietSummaryChevron = $("#dietSummaryChevron");
+  let dietSummaryOpen = false;
+
+  $("#toggleDietSummary").addEventListener("click", () => {
+    dietSummaryOpen = !dietSummaryOpen;
+    dietSummarySection.hidden = !dietSummaryOpen;
+    dietSummaryChevron.textContent = dietSummaryOpen ? "▾" : "▸";
+    if (dietSummaryOpen) renderDietSummary();
+  });
+
+  function renderDietSummary() {
+    const y = monthCursor.getFullYear(), m = monthCursor.getMonth();
+    const prefix = `${y}-${String(m + 1).padStart(2, "0")}-`;
+    const keys = Object.keys(state.diet).filter(k => k.startsWith(prefix) && state.diet[k]).sort();
+    dietSummarySection.innerHTML = "";
+    if (keys.length === 0) {
+      dietSummarySection.innerHTML = `<p class="diet-summary-empty">이번달 기록된 식단이 없어.</p>`;
+      return;
+    }
+    keys.forEach(k => {
+      const day = state.diet[k];
+      const parts = ["breakfast", "lunch", "dinner"].map(meal => {
+        const mm = day[meal];
+        if (!mm || (!mm.time && !mm.food)) return null;
+        return `${mm.time ? mm.time + " " : ""}${mm.food || ""}`.trim();
+      }).filter(Boolean);
+      if (parts.length === 0) return;
+      const date = keyToDate(k);
+      const row = document.createElement("div");
+      row.className = "diet-summary-row";
+      row.innerHTML = `<span class="d-date">${date.getDate()}일</span><span class="d-meals">${parts.map(escapeHtml).join(" · ")}</span>`;
+      dietSummarySection.appendChild(row);
+    });
+  }
 
   // ---------- MONTHLY GOALS ----------
   function renderMonthlyGoals() {

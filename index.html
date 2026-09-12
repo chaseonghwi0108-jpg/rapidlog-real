@@ -37,6 +37,7 @@
     <button class="tab active" data-view="today">Today</button>
     <button class="tab" data-view="monthly">Monthly</button>
     <button class="tab" data-view="habits">Habits</button>
+    <button class="tab" data-view="diet">Diet</button>
   </nav>
 
   <main id="main">
@@ -76,6 +77,13 @@
         <div id="goalList" class="goal-list"></div>
       </div>
 
+      <div class="diet-summary-section">
+        <button id="toggleDietSummary" class="goal-section-head diet-summary-toggle">
+          <p class="section-label">이번달 식단 <span id="dietSummaryChevron">▸</span></p>
+        </button>
+        <div id="dietSummaryList" class="diet-summary-list" hidden></div>
+      </div>
+
       <ul id="monthList" class="month-list"></ul>
     </section>
 
@@ -85,6 +93,32 @@
         <span class="add-glyph">+</span> 습관 추가
       </button>
       <div id="habitGrid" class="habit-grid"></div>
+    </section>
+
+    <!-- DIET VIEW -->
+    <section id="view-diet" class="view">
+      <p id="dietDateLabel" class="meta-mono" style="margin-bottom:14px;"></p>
+      <div class="diet-meal-card" data-meal="breakfast">
+        <div class="diet-meal-label">아침</div>
+        <div class="diet-meal-fields">
+          <input id="dietBreakfastTime" class="diet-time-input" type="time" />
+          <input id="dietBreakfastFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
+        </div>
+      </div>
+      <div class="diet-meal-card" data-meal="lunch">
+        <div class="diet-meal-label">점심</div>
+        <div class="diet-meal-fields">
+          <input id="dietLunchTime" class="diet-time-input" type="time" />
+          <input id="dietLunchFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
+        </div>
+      </div>
+      <div class="diet-meal-card" data-meal="dinner">
+        <div class="diet-meal-label">저녁</div>
+        <div class="diet-meal-fields">
+          <input id="dietDinnerTime" class="diet-time-input" type="time" />
+          <input id="dietDinnerFood" class="diet-food-input" type="text" placeholder="먹은 음식" maxlength="80" />
+        </div>
+      </div>
     </section>
 
   </main>
@@ -126,6 +160,7 @@
       <button class="menu-item" data-view="today">Today</button>
       <button class="menu-item" data-view="monthly">Monthly</button>
       <button class="menu-item" data-view="habits">Habits</button>
+      <button class="menu-item" data-view="diet">Diet</button>
       <div class="menu-divider"></div>
       <button id="exportBtn" class="menu-item">데이터 내보내기 (JSON)</button>
       <button id="importBtn" class="menu-item">데이터 가져오기</button>
