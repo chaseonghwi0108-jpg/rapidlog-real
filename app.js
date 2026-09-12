@@ -3,7 +3,66 @@
 
   const STORAGE_KEY = "rapidlog.v1";
   const DOW = ["일", "월", "화", "수", "목", "금", "토"];
-  const GEM_CLASSES = ["gem-c0", "gem-c1", "gem-c2", "gem-c3"];
+  const ORNAMENT_FOLDERS = [
+    ["#D9BE8A", "#3A3E78", "#C2673E"], // 샴페인 + 인디고 + 테라코타
+    ["#D9BB4E", "#B8465B", "#2E7A72"], // 올리브골드 + 버건디 + 틸
+    ["#D9BE8A", "#6E9563", "#5F3E66"], // 샴페인 + 세이지 + 플럼
+    ["#CDAE7C", "#C06A3E", "#3A3E78"], // 샌드 + 러스트 + 인디고
+  ];
+
+  function hashSeed(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
+  }
+
+  function mulberry32(seed) {
+    let a = seed;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // 날짜(key)를 시드로 매번 다른 형태·색조합이 나오는 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
+  function generateOrnamentSVG(key, size) {
+    const rand = mulberry32(hashSeed(key));
+    const folder = ORNAMENT_FOLDERS[Math.floor(rand() * ORNAMENT_FOLDERS.length)];
+    const n = 6 + Math.floor(rand() * 5); // 6~10 조각
+    const curve = rand(); // 0=뾰족, 1=둥근 로제트
+    const outerR = 30 + rand() * 14;
+    const rotationOffset = rand() * 360;
+    const hasInnerRing = rand() < 0.4;
+    const centerColor = folder[Math.floor(rand() * folder.length)];
+    let shapes = "";
+    for (let i = 0; i < n; i++) {
+      const a1 = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
+      const a2 = ((rotationOffset + (i + 1) * (360 / n)) * Math.PI) / 180;
+      const x1 = outerR * Math.cos(a1), y1 = outerR * Math.sin(a1);
+      const x2 = outerR * Math.cos(a2), y2 = outerR * Math.sin(a2);
+      const midA = (a1 + a2) / 2;
+      const bulge = outerR * (1 + curve * 0.35);
+      const mx = bulge * Math.cos(midA), my = bulge * Math.sin(midA);
+      const color = folder[i % folder.length];
+      shapes += `<path d="M0,0 L${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}"/>`;
+    }
+    if (hasInnerRing) shapes += `<circle r="${(outerR * 0.42).toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="1" opacity="0.55"/>`;
+    shapes += `<circle r="${(outerR * 0.14).toFixed(1)}" fill="${centerColor}"/>`;
+    return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
+  }
+
+  function computeStreak(uptoKey) {
+    let streak = 0;
+    const d = keyToDate(uptoKey);
+    if (!state.completedDays[uptoKey]) d.setDate(d.getDate() - 1);
+    while (state.completedDays[fmtKey(d)]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
 
   // ---------- STATE ----------
   const defaultState = () => ({ entries: {}, gratitude: {}, habits: [], habitLogs: {}, completedDays: {}, monthlyGoals: {} });
@@ -84,17 +143,12 @@
     g.progress = Math.round(Math.max(0, (g.progress || 0) - amount) * 10) / 10;
   }
 
-  function gemClassForKey(key) {
-    let h = 0;
-    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-    return GEM_CLASSES[h % GEM_CLASSES.length];
-  }
-
   // ---------- DOM ----------
   const $ = (sel) => document.querySelector(sel);
   const viewTitle = $("#viewTitle");
   const viewSubtitle = $("#viewSubtitle");
   const perfectBadge = $("#perfectBadge");
+  const streakNote = $("#streakNote");
   const mainEl = $("#main");
   const rapidList = $("#rapidList");
   makeSortable(rapidList, (newOrderIds) => {
@@ -154,14 +208,14 @@
     gemVaultSelectedInfo.textContent = "";
     gemVaultGrid.innerHTML = "";
     if (keys.length === 0) {
-      gemVaultGrid.innerHTML = `<p style="color:var(--ink-faint);font-size:13px;">아직 모은 보석이 없어. 하루를 완벽하게 채워봐.</p>`;
+      gemVaultGrid.innerHTML = `<p style="color:var(--ink-faint);font-size:13px;">아직 모은 문양이 없어. 하루를 완벽하게 채워봐.</p>`;
       return;
     }
     keys.forEach(key => {
       const btn = document.createElement("button");
       btn.className = "gem-vault-item";
       btn.dataset.key = key;
-      btn.innerHTML = `<span class="gem-icon ${gemClassForKey(key)}"></span>`;
+      btn.innerHTML = generateOrnamentSVG(key, 40);
       gemVaultGrid.appendChild(btn);
     });
   }
@@ -170,7 +224,7 @@
     const item = e.target.closest(".gem-vault-item");
     if (!item) return;
     const date = keyToDate(item.dataset.key);
-    gemVaultSelectedInfo.textContent = date.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }) + "의 보석";
+    gemVaultSelectedInfo.textContent = date.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }) + "의 완벽한 하루";
     gemVaultGrid.querySelectorAll(".gem-vault-item.selected").forEach(el => el.classList.remove("selected"));
     item.classList.add("selected");
   });
@@ -256,9 +310,19 @@
     mainEl.classList.toggle("day-complete", complete);
     if (complete) {
       perfectBadge.hidden = false;
-      perfectBadge.className = "gem-icon " + gemClassForKey(key);
+      perfectBadge.innerHTML = generateOrnamentSVG(key, 26);
     } else {
       perfectBadge.hidden = true;
+      perfectBadge.innerHTML = "";
+    }
+
+    // 연속기록 (실제 오늘을 보고 있을 때만)
+    if (isSameDay(currentDate, new Date())) {
+      const streak = computeStreak(key);
+      streakNote.textContent = streak > 0 ? `${streak}일 연속 달성중` : "";
+      streakNote.hidden = streak === 0;
+    } else {
+      streakNote.hidden = true;
     }
   }
 
@@ -498,10 +562,16 @@
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(y, m, d);
       const key = fmtKey(date);
+      const complete = !!state.completedDays[key];
+      const colIndex = (firstDow + d - 1) % 7;
+      let streakCls = "";
+      if (complete) {
+        if (colIndex < 6 && d < daysInMonth && state.completedDays[fmtKey(new Date(y, m, d + 1))]) streakCls += " streak-right";
+        if (colIndex > 0 && d > 1 && state.completedDays[fmtKey(new Date(y, m, d - 1))]) streakCls += " streak-left";
+      }
       const cell = document.createElement("div");
-      cell.className = "dp-cell" + (isSameDay(date, today) ? " is-today" : "") + (isSameDay(date, currentDate) ? " is-selected" : "");
-      const gem = state.completedDays[key] ? `<span class="gem-icon dp-gem ${gemClassForKey(key)}"></span>` : "";
-      cell.innerHTML = `<span>${d}</span>${gem}`;
+      cell.className = "dp-cell" + (isSameDay(date, today) ? " is-today" : "") + (isSameDay(date, currentDate) ? " is-selected" : "") + (complete ? " complete-day" + streakCls : "");
+      cell.innerHTML = `<span>${d}</span>`;
       cell.addEventListener("click", () => {
         currentDate = date;
         datePickerSheet.hidden = true;
@@ -608,15 +678,19 @@
       const date = new Date(y, m, d);
       const key = fmtKey(date);
       const entries = state.entries[key] || [];
+      const complete = !!state.completedDays[key];
       const li = document.createElement("li");
       li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "");
       const entriesHtml = entries.length
         ? entries.slice(0, 4).map(it => `<div class="mini-entry ${it.status === "done" ? "done" : ""}">${glyphFor(it.type, it.status)} ${escapeHtml(it.text)}</div>`).join("")
         : `<div class="empty">—</div>`;
-      const gem = state.completedDays[key] ? `<span class="gem-icon ${gemClassForKey(key)}"></span>` : "";
+      const prevKey = fmtKey(new Date(y, m, d - 1));
+      const nextKey = fmtKey(new Date(y, m, d + 1));
+      const streakUp = complete && state.completedDays[prevKey] ? " streak-up" : "";
+      const streakDown = complete && state.completedDays[nextKey] ? " streak-down" : "";
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num">${d}${gem}</div>
+          <div class="date-num ${complete ? "complete-day" + streakUp + streakDown : ""}">${d}</div>
           <div class="date-dow">${DOW[date.getDay()]}</div>
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>

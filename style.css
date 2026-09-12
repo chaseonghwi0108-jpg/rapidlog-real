@@ -355,14 +355,41 @@ main {
   gap: 12px;
   padding: 10px 2px;
   border-bottom: 1px solid var(--border);
+  align-items: flex-start;
 }
 
 .month-day .date-col {
   flex-shrink: 0;
   width: 40px;
   text-align: center;
+  position: relative;
 }
-.month-day .date-num { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.month-day .date-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  width: 24px; height: 24px;
+  line-height: 24px;
+  border-radius: 50%;
+  margin: 0 auto;
+  position: relative;
+}
+.month-day .date-num.complete-day {
+  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
+  color: #5A431E;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45), 0 1px 2px rgba(90,67,30,0.3);
+}
+.month-day .date-num.complete-day.streak-up::before,
+.month-day .date-num.complete-day.streak-down::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  background: linear-gradient(180deg, #D9BE8A, #B89552);
+}
+.month-day .date-num.complete-day.streak-up::before { top: -11px; height: 11px; }
+.month-day .date-num.complete-day.streak-down::after { top: 100%; height: 26px; }
 .month-day .date-dow { font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; }
 .month-day.today .date-num { color: var(--accent); }
 .month-day.weekend .date-dow { color: var(--danger); }
@@ -650,7 +677,23 @@ main {
 .dp-cell.empty { cursor: default; }
 .dp-cell.is-selected { background: var(--ink); color: var(--surface); font-weight: 600; }
 .dp-cell.is-today:not(.is-selected) { color: var(--accent); font-weight: 700; }
-.dp-cell .dp-gem { width: 5px; height: 5px; }
+
+.dp-cell.complete-day {
+  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
+  color: #5A431E;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45);
+}
+.dp-cell.complete-day.streak-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.dp-cell.complete-day.streak-left { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.dp-cell.complete-day.streak-right::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; right: -5px;
+  width: 6px;
+  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
+}
 
 /* ---------- GEM / COLLECTIBLE ---------- */
 .gem-icon {
@@ -736,8 +779,22 @@ main {
 main.day-complete {
   position: relative;
   border-radius: 18px;
-  box-shadow: inset 0 0 0 1px rgba(76,95,232,0.25), 0 12px 32px -18px rgba(76,95,232,0.55);
-  background: linear-gradient(180deg, rgba(76,95,232,0.05), transparent 140px);
+  box-shadow: inset 0 0 0 1px rgba(217,190,138,0.4), 0 12px 32px -18px rgba(184,149,82,0.5);
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(120% 60% at 85% 10%, rgba(217,190,138,0.35), transparent 55%),
+    linear-gradient(160deg, rgba(246,234,203,0.55), rgba(217,190,138,0.12) 55%, transparent 85%);
+}
+
+.ornament-badge { display: inline-flex; vertical-align: middle; margin-left: 4px; }
+.ornament-badge svg { display: block; }
+
+.streak-note {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #B8802E;
 }
 
 @media (min-width: 481px) {
