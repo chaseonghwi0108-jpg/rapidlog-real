@@ -374,22 +374,11 @@ main {
   margin: 0 auto;
   position: relative;
 }
-.month-day .date-num.complete-day { display: flex; align-items: center; justify-content: center; line-height: normal; }
-.month-day .date-num .medallion { position: absolute; inset: 0; }
-.month-day .date-num .medallion svg { display: block; }
-.month-day .date-num .num-text { position: relative; z-index: 1; font-size: 11.5px; color: #4A3517; }
-.month-day .date-num.complete-day.streak-up::before,
-.month-day .date-num.complete-day.streak-down::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 3px;
-  background: linear-gradient(180deg, #D9BE8A, #B89552);
-  z-index: 0;
+.month-day .date-num.complete-day {
+  color: #5A431E;
+  background: radial-gradient(120% 120% at 30% 25%, #FFFDF6 0%, #F3E7C8 35%, #E8D3A0 65%, #C7A662 100%);
+  box-shadow: inset 0 0 0 1px rgba(138,105,30,0.55), 0 1px 3px rgba(138,105,30,0.35);
 }
-.month-day .date-num.complete-day.streak-up::before { top: -11px; height: 11px; }
-.month-day .date-num.complete-day.streak-down::after { top: 100%; height: 26px; }
 .month-day .date-dow { font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; }
 .month-day.today .date-num { color: var(--accent); }
 .month-day.weekend .date-dow { color: var(--danger); }
@@ -483,17 +472,17 @@ main {
 }
 .habit-cell:active { transform: scale(0.88); }
 .habit-cell.filled {
-  background: linear-gradient(150deg, #6F7EF2, var(--accent) 60%, #38439F);
+  background: radial-gradient(120% 120% at 30% 25%, #FFFDF6 0%, #F3E7C8 35%, #E8D3A0 65%, #C7A662 100%);
   border-color: transparent;
-  box-shadow: 0 2px 5px rgba(76,95,232,0.35);
+  box-shadow: 0 2px 5px rgba(138,105,30,0.4), inset 0 0 0 1px rgba(138,105,30,0.35);
 }
 .habit-cell.filled::after {
   content: "";
   position: absolute;
-  top: 12%; left: 16%;
-  width: 34%; height: 34%;
+  top: 10%; left: 14%;
+  width: 30%; height: 30%;
   border-radius: 50%;
-  background: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.75);
   filter: blur(0.5px);
 }
 .habit-cell.future { background: transparent; border-style: dashed; border-color: var(--border); cursor: default; }
@@ -679,23 +668,28 @@ main {
 .dp-cell.is-today:not(.is-selected) { color: var(--accent); font-weight: 700; }
 
 .dp-cell.complete-day {
-  background: linear-gradient(160deg, #F6EFDD, #E8D3A0 60%, #D4B978);
   color: #5A431E;
   font-weight: 700;
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px #B89552, inset 0 0 0 3px rgba(255,255,255,0.55);
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,0.9), rgba(255,255,255,0) 42%),
+    repeating-conic-gradient(from 0deg, rgba(138,105,30,0.16) 0deg 4deg, rgba(255,255,255,0.12) 4deg 8deg),
+    radial-gradient(140% 140% at 50% 50%, #F6EFDD 0%, #E8D3A0 55%, #C7A662 85%, #B08D4E 100%);
+  box-shadow: inset 0 0 0 1px #8A691E, inset 0 0 0 3px rgba(255,255,255,0.5), inset 0 0 6px rgba(138,105,30,0.35);
 }
 .dp-cell.complete-day.streak-right,
-.dp-cell.complete-day.streak-left { box-shadow: inset 0 0 0 1px #B89552; }
+.dp-cell.complete-day.streak-left { box-shadow: inset 0 0 0 1px #8A691E, inset 0 0 6px rgba(138,105,30,0.35); }
 .dp-cell.complete-day.streak-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .dp-cell.complete-day.streak-left { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .dp-cell.complete-day.streak-right::after {
   content: "";
   position: absolute;
-  top: 45%; right: -5px;
-  width: 6px; height: 10%;
-  background: #B89552;
-  border-radius: 2px;
+  top: 50%; right: -6px;
+  width: 9px; height: 5px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, #B89552 0 2px, #F3E4BC 2px 4px);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(138,105,30,0.45);
 }
 
 /* ---------- GEM / COLLECTIBLE ---------- */
@@ -789,26 +783,48 @@ main {
     var(--bg);
 }
 
-.topbar { position: relative; }
-.corner-ornament {
-  position: absolute;
-  opacity: 0;
+/* 완벽한 하루: 화면 전체를 감싸는 금장 테두리 (헤더만이 아니라 뷰포트 전체) */
+.day-complete-frame {
+  position: fixed;
+  inset: 0;
+  width: min(480px, 100%);
+  margin: 0 auto;
   pointer-events: none;
-  transition: opacity .4s ease;
-  z-index: 2;
+  z-index: 45;
+  opacity: 0;
+  transition: opacity .5s ease;
 }
-.corner-tl { top: 4px; left: 4px; }
-.corner-tr { top: 4px; right: 4px; transform: scaleX(-1); }
-.corner-bl { bottom: 4px; left: 4px; transform: scaleY(-1); }
-.corner-br { bottom: 4px; right: 4px; transform: scale(-1,-1); }
-#app.day-complete .corner-ornament { opacity: 0.85; animation: cornerTwinkle 3.2s ease-in-out infinite; }
-#app.day-complete .corner-tr { animation-delay: .5s; }
-#app.day-complete .corner-bl { animation-delay: 1s; }
-#app.day-complete .corner-br { animation-delay: 1.5s; }
+.day-complete-frame.active { opacity: 1; }
+
+.frame-corner {
+  position: absolute;
+  width: 30px; height: 30px;
+  animation: cornerTwinkle 3.2s ease-in-out infinite;
+}
+.frame-corner svg { display: block; width: 100%; height: 100%; }
+.frame-corner.tl { top: 10px; left: 10px; }
+.frame-corner.tr { top: 10px; right: 10px; transform: scaleX(-1); animation-delay: .5s; }
+.frame-corner.bl { bottom: 10px; left: 10px; transform: scaleY(-1); animation-delay: 1s; }
+.frame-corner.br { bottom: 10px; right: 10px; transform: scale(-1,-1); animation-delay: 1.5s; }
+
 @keyframes cornerTwinkle {
-  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 0 rgba(217,190,138,0)); }
+  0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 0 rgba(217,190,138,0)); }
   50% { opacity: 1; filter: drop-shadow(0 0 4px rgba(217,190,138,0.85)); }
 }
+
+/* 모서리에서 시작해 반대쪽으로 갈수록 옅어지며, 반대쪽 선과 완전히 만나지는 않게 */
+.frame-edge { position: absolute; }
+.frame-edge.top-l, .frame-edge.top-r, .frame-edge.bottom-l, .frame-edge.bottom-r { height: 1.6px; width: 34%; }
+.frame-edge.left-t, .frame-edge.left-b, .frame-edge.right-t, .frame-edge.right-b { width: 1.6px; height: 20%; }
+
+.frame-edge.top-l { top: 12px; left: 12px; background: linear-gradient(to right, #B89552, rgba(184,149,82,0)); }
+.frame-edge.top-r { top: 12px; right: 12px; background: linear-gradient(to left, #B89552, rgba(184,149,82,0)); }
+.frame-edge.bottom-l { bottom: 12px; left: 12px; background: linear-gradient(to right, #B89552, rgba(184,149,82,0)); }
+.frame-edge.bottom-r { bottom: 12px; right: 12px; background: linear-gradient(to left, #B89552, rgba(184,149,82,0)); }
+.frame-edge.left-t { top: 12px; left: 12px; background: linear-gradient(to bottom, #B89552, rgba(184,149,82,0)); }
+.frame-edge.left-b { bottom: 12px; left: 12px; background: linear-gradient(to top, #B89552, rgba(184,149,82,0)); }
+.frame-edge.right-t { top: 12px; right: 12px; background: linear-gradient(to bottom, #B89552, rgba(184,149,82,0)); }
+.frame-edge.right-b { bottom: 12px; right: 12px; background: linear-gradient(to top, #B89552, rgba(184,149,82,0)); }
 
 .ornament-badge { display: inline-flex; vertical-align: middle; margin-left: 4px; }
 .ornament-badge svg { display: block; }

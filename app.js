@@ -55,70 +55,84 @@
   }
 
   // 날짜(key)를 시드로 매번 다른 형태·색조합이 나오는 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
+  // 4가지 실루엣 계열(뾰족/둥근/통통/보태니컬)을 두고 그 안에서만 파라미터를 섞어서,
+  // "색만 다른 같은 모양"이 되지 않고 진짜 서로 다른 형태가 나오게 함.
   function generateOrnamentSVG(key, size) {
     const rand = mulberry32(hashSeed(key));
     const folder = generatePalette(rand);
-    const n = 5 + Math.floor(rand() * 6); // 5~10 조각
-    const mode = rand() < 0.5 ? "spike" : "rosette";
-    const rotationOffset = rand() * 360;
-    const hasInnerRing = rand() < 0.35;
     const centerColor = folder[Math.floor(rand() * folder.length)];
+    const rotationOffset = rand() * 360;
+    const modes = ["spike", "round", "chunky", "botanical"];
+    const mode = modes[Math.floor(rand() * modes.length)];
     let shapes = "";
 
     if (mode === "spike") {
-      const outerR = 32 + rand() * 14;
-      const innerR = 5 + rand() * 6;
-      const widthFactor = 0.10 + rand() * 0.18;
+      // 뾰족한 별/핀휠 조각
+      const n = 6 + Math.floor(rand() * 6); // 6~11
+      const outerR = 30 + rand() * 16;
+      const innerR = 4 + rand() * 5;
+      const widthFactor = 0.08 + rand() * 0.14;
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
         const spread = ((360 / n) * widthFactor * Math.PI) / 180;
-        const tipR = outerR * (0.72 + rand() * 0.5);
+        const tipR = outerR * (0.75 + rand() * 0.45);
         const x1 = innerR * Math.cos(a - spread), y1 = innerR * Math.sin(a - spread);
         const x2 = tipR * Math.cos(a), y2 = tipR * Math.sin(a);
         const x3 = innerR * Math.cos(a + spread), y3 = innerR * Math.sin(a + spread);
-        const color = folder[i % folder.length];
-        shapes += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} Z" fill="${color}"/>`;
+        shapes += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} Z" fill="${folder[i % folder.length]}"/>`;
       }
-    } else {
-      const outerR = 24 + rand() * 16;
-      const petalW = 9 + rand() * 11;
+    } else if (mode === "round") {
+      // 겹쳐진 둥근 원형 꽃잎(로제트)
+      const n = 5 + Math.floor(rand() * 5); // 5~9
+      const orbitR = 13 + rand() * 9;
+      const petalR = 10 + rand() * 9;
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const len = outerR * (0.78 + rand() * 0.45);
+        const cx = orbitR * Math.cos(a), cy = orbitR * Math.sin(a);
+        shapes += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${petalR.toFixed(1)}" fill="${folder[i % folder.length]}" opacity="0.88"/>`;
+      }
+    } else if (mode === "chunky") {
+      // 통통한 하트형 꽃잎 (개수는 적게, 폭은 넓게)
+      const n = 3 + Math.floor(rand() * 3); // 3~5
+      const len = 26 + rand() * 16;
+      const width = 15 + rand() * 10;
+      for (let i = 0; i < n; i++) {
+        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
         const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
-        const perpX = -Math.sin(a) * petalW * 0.5, perpY = Math.cos(a) * petalW * 0.5;
-        const midR = len * 0.55;
+        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
+        const midR = len * 0.42;
         const midX = midR * Math.cos(a), midY = midR * Math.sin(a);
         const c1x = midX + perpX, c1y = midY + perpY;
         const c2x = midX - perpX, c2y = midY - perpY;
+        const bx = tipX + perpX * 0.3, by = tipY + perpY * 0.3;
+        const dx = tipX - perpX * 0.3, dy = tipY - perpY * 0.3;
+        shapes += `<path d="M0,0 C${c1x.toFixed(1)},${c1y.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} C${dx.toFixed(1)},${dy.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${folder[i % folder.length]}" opacity="0.92"/>`;
+      }
+    } else {
+      // 보태니컬: 길쭉한 잎사귀 + 잎맥
+      const n = 4 + Math.floor(rand() * 4); // 4~7
+      const len = 30 + rand() * 14;
+      const width = 6 + rand() * 5;
+      for (let i = 0; i < n; i++) {
+        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
+        const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
+        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
+        const midR = len * 0.5;
+        const midX = midR * Math.cos(a), midY = midR * Math.sin(a);
         const color = folder[i % folder.length];
-        shapes += `<path d="M0,0 Q${c1x.toFixed(1)},${c1y.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${color}" opacity="0.94"/>`;
+        shapes += `<path d="M0,0 Q${(midX + perpX).toFixed(1)},${(midY + perpY).toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${(midX - perpX).toFixed(1)},${(midY - perpY).toFixed(1)} 0,0 Z" fill="${color}" opacity="0.9"/>`;
+        shapes += `<line x1="0" y1="0" x2="${(tipX * 0.85).toFixed(1)}" y2="${(tipY * 0.85).toFixed(1)}" stroke="${centerColor}" stroke-width="0.6" opacity="0.35"/>`;
       }
     }
 
-    if (hasInnerRing) shapes += `<circle r="${(14 + rand() * 8).toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="1" opacity="0.5"/>`;
+    if (rand() < 0.5) {
+      const ringR = 12 + rand() * 12;
+      const thick = rand() < 0.5;
+      const sw = thick ? 2.5 + rand() * 2.5 : 0.8 + rand() * 0.6;
+      shapes += `<circle r="${ringR.toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="${sw.toFixed(1)}" opacity="${thick ? 0.5 : 0.55}"/>`;
+    }
     shapes += `<circle r="${(4 + rand() * 3).toFixed(1)}" fill="${centerColor}"/>`;
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
-  }
-
-  // 캘린더/월간 리스트용 고정 골드 메달리온 (날짜마다 다르지 않고 항상 동일한 디자인)
-  function medallionSVG(size) {
-    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
-      <circle cx="16" cy="16" r="14.2" fill="none" stroke="#8A691E" stroke-width="1"/>
-      <circle cx="16" cy="16" r="12" fill="none" stroke="#B89552" stroke-width="0.8"/>
-      <circle cx="16" cy="16" r="10.2" fill="#E8D3A0"/>
-      <g stroke="#8A691E" stroke-width="1" opacity="0.65">
-        <line x1="16" y1="4.5" x2="16" y2="7.8"/>
-        <line x1="16" y1="24.2" x2="16" y2="27.5"/>
-        <line x1="4.5" y1="16" x2="7.8" y2="16"/>
-        <line x1="24.2" y1="16" x2="27.5" y2="16"/>
-        <line x1="7.7" y1="7.7" x2="9.9" y2="9.9"/>
-        <line x1="22.1" y1="22.1" x2="24.3" y2="24.3"/>
-        <line x1="24.3" y1="7.7" x2="22.1" y2="9.9"/>
-        <line x1="9.9" y1="22.1" x2="7.7" y2="24.3"/>
-      </g>
-      <circle cx="16" cy="16" r="3.2" fill="#5A431E"/>
-    </svg>`;
   }
 
   function computeStreak(uptoKey) {
@@ -219,6 +233,7 @@
   const streakNote = $("#streakNote");
   const mainEl = $("#main");
   const appEl = $("#app");
+  const dayCompleteFrame = $("#dayCompleteFrame");
   const rapidList = $("#rapidList");
   makeSortable(rapidList, (newOrderIds) => {
     const key = fmtKey(currentDate);
@@ -255,9 +270,14 @@
     return tasks.every(it => it.status === "done");
   }
 
-  function checkAndAwardCompletion(key) {
-    if (isDayComplete(key) && !state.completedDays[key]) {
+  // 하루 완료 상태를 실제 항목 상태와 항상 동기화. 완료 -> 보석 획득, 완료 취소/삭제로 다시 미완료가 되면 보석도 회수.
+  function syncDayCompletion(key) {
+    const complete = isDayComplete(key);
+    if (complete && !state.completedDays[key]) {
       state.completedDays[key] = true;
+      save();
+    } else if (!complete && state.completedDays[key]) {
+      delete state.completedDays[key];
       save();
     }
   }
@@ -318,8 +338,8 @@
       titleTextNode.textContent = isSameDay(currentDate, new Date()) ? "오늘 " : "일지 ";
       renderToday();
     }
-    if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); renderMonthly(); }
-    if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); renderHabits(); }
+    if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); dayCompleteFrame.classList.remove("active"); renderMonthly(); }
+    if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); dayCompleteFrame.classList.remove("active"); renderHabits(); }
     updateSubtitle();
     updateGemCountUI();
   }
@@ -377,6 +397,7 @@
     // perfect-day visuals
     const complete = isDayComplete(key);
     appEl.classList.toggle("day-complete", complete);
+    dayCompleteFrame.classList.toggle("active", complete);
     if (complete) {
       perfectBadge.hidden = false;
       perfectBadge.innerHTML = generateOrnamentSVG(key, 26);
@@ -568,7 +589,6 @@
             return; // 저장은 progress 입력 확정 후 처리
           }
           it.status = "done";
-          checkAndAwardCompletion(key);
         } else {
           if (it.goalId && it.goalAmount) {
             subtractGoalProgress(it.goalMonth, it.goalId, it.goalAmount);
@@ -576,6 +596,7 @@
           }
           it.status = "open";
         }
+        syncDayCompletion(key);
       }
       save(); renderToday();
     } else if (action === "unmigrate") {
@@ -585,7 +606,7 @@
       save(); renderToday();
     } else if (action === "delete") {
       list.splice(idx, 1);
-      checkAndAwardCompletion(key);
+      syncDayCompletion(key);
       save(); renderToday();
     } else if (action === "migrate-in") {
       const item = list[idx];
@@ -753,16 +774,9 @@
       const entriesHtml = entries.length
         ? entries.slice(0, 4).map(it => `<div class="mini-entry ${it.status === "done" ? "done" : ""}">${glyphFor(it.type, it.status)} ${escapeHtml(it.text)}</div>`).join("")
         : `<div class="empty">—</div>`;
-      const prevKey = fmtKey(new Date(y, m, d - 1));
-      const nextKey = fmtKey(new Date(y, m, d + 1));
-      const streakUp = complete && state.completedDays[prevKey] ? " streak-up" : "";
-      const streakDown = complete && state.completedDays[nextKey] ? " streak-down" : "";
-      const dateNumInner = complete
-        ? `<span class="medallion">${medallionSVG(24)}</span><span class="num-text">${d}</span>`
-        : `${d}`;
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num ${complete ? "complete-day" + streakUp + streakDown : ""}">${dateNumInner}</div>
+          <div class="date-num${complete ? " complete-day" : ""}">${d}</div>
           <div class="date-dow">${DOW[date.getDay()]}</div>
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>
@@ -873,7 +887,7 @@
     item.status = "done";
     item.goalAmount = amount;
     addGoalProgress(item.goalMonth, item.goalId, amount);
-    checkAndAwardCompletion(key);
+    syncDayCompletion(key);
     save();
     goalProgressSheet.hidden = true;
     renderToday();
