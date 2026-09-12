@@ -3,12 +3,6 @@
 
   const STORAGE_KEY = "rapidlog.v1";
   const DOW = ["일", "월", "화", "수", "목", "금", "토"];
-  const ORNAMENT_FOLDERS = [
-    ["#D9BE8A", "#3A3E78", "#C2673E"], // 샴페인 + 인디고 + 테라코타
-    ["#D9BB4E", "#B8465B", "#2E7A72"], // 올리브골드 + 버건디 + 틸
-    ["#D9BE8A", "#6E9563", "#5F3E66"], // 샴페인 + 세이지 + 플럼
-    ["#CDAE7C", "#C06A3E", "#3A3E78"], // 샌드 + 러스트 + 인디고
-  ];
 
   function hashSeed(str) {
     let h = 0;
@@ -26,31 +20,105 @@
     };
   }
 
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, "0");
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  }
+
+  // 기준 색상(hue)을 무작위로 뽑고, 정해둔 배색 관계(삼각/분할보색/보색 등) 중 하나로 나머지 두 색을 결정.
+  // 명도는 밝음/중간/어두움 밴드를 항상 하나씩 배분해서 명암 대비는 보장하되, 어느 색이 어느 밴드를 가질지는 매번 섞음.
+  function generatePalette(rand) {
+    const baseHue = rand() * 360;
+    const schemes = [
+      [0, 120, 240],
+      [0, 150, 210],
+      [0, 180, 30],
+      [0, 40, 200],
+      [0, 90, 270],
+    ];
+    const offsets = schemes[Math.floor(rand() * schemes.length)];
+    const lightBands = [76, 50, 28];
+    const order = [0, 1, 2];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return offsets.map((off, i) => {
+      const hue = (baseHue + off) % 360;
+      const sat = 64 + rand() * 22;
+      return hslToHex(hue, sat, lightBands[order[i]]);
+    });
+  }
+
   // 날짜(key)를 시드로 매번 다른 형태·색조합이 나오는 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
   function generateOrnamentSVG(key, size) {
     const rand = mulberry32(hashSeed(key));
-    const folder = ORNAMENT_FOLDERS[Math.floor(rand() * ORNAMENT_FOLDERS.length)];
-    const n = 6 + Math.floor(rand() * 5); // 6~10 조각
-    const curve = rand(); // 0=뾰족, 1=둥근 로제트
-    const outerR = 30 + rand() * 14;
+    const folder = generatePalette(rand);
+    const n = 5 + Math.floor(rand() * 6); // 5~10 조각
+    const mode = rand() < 0.5 ? "spike" : "rosette";
     const rotationOffset = rand() * 360;
-    const hasInnerRing = rand() < 0.4;
+    const hasInnerRing = rand() < 0.35;
     const centerColor = folder[Math.floor(rand() * folder.length)];
     let shapes = "";
-    for (let i = 0; i < n; i++) {
-      const a1 = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-      const a2 = ((rotationOffset + (i + 1) * (360 / n)) * Math.PI) / 180;
-      const x1 = outerR * Math.cos(a1), y1 = outerR * Math.sin(a1);
-      const x2 = outerR * Math.cos(a2), y2 = outerR * Math.sin(a2);
-      const midA = (a1 + a2) / 2;
-      const bulge = outerR * (1 + curve * 0.35);
-      const mx = bulge * Math.cos(midA), my = bulge * Math.sin(midA);
-      const color = folder[i % folder.length];
-      shapes += `<path d="M0,0 L${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}"/>`;
+
+    if (mode === "spike") {
+      const outerR = 32 + rand() * 14;
+      const innerR = 5 + rand() * 6;
+      const widthFactor = 0.10 + rand() * 0.18;
+      for (let i = 0; i < n; i++) {
+        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
+        const spread = ((360 / n) * widthFactor * Math.PI) / 180;
+        const tipR = outerR * (0.72 + rand() * 0.5);
+        const x1 = innerR * Math.cos(a - spread), y1 = innerR * Math.sin(a - spread);
+        const x2 = tipR * Math.cos(a), y2 = tipR * Math.sin(a);
+        const x3 = innerR * Math.cos(a + spread), y3 = innerR * Math.sin(a + spread);
+        const color = folder[i % folder.length];
+        shapes += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} Z" fill="${color}"/>`;
+      }
+    } else {
+      const outerR = 24 + rand() * 16;
+      const petalW = 9 + rand() * 11;
+      for (let i = 0; i < n; i++) {
+        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
+        const len = outerR * (0.78 + rand() * 0.45);
+        const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
+        const perpX = -Math.sin(a) * petalW * 0.5, perpY = Math.cos(a) * petalW * 0.5;
+        const midR = len * 0.55;
+        const midX = midR * Math.cos(a), midY = midR * Math.sin(a);
+        const c1x = midX + perpX, c1y = midY + perpY;
+        const c2x = midX - perpX, c2y = midY - perpY;
+        const color = folder[i % folder.length];
+        shapes += `<path d="M0,0 Q${c1x.toFixed(1)},${c1y.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${color}" opacity="0.94"/>`;
+      }
     }
-    if (hasInnerRing) shapes += `<circle r="${(outerR * 0.42).toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="1" opacity="0.55"/>`;
-    shapes += `<circle r="${(outerR * 0.14).toFixed(1)}" fill="${centerColor}"/>`;
+
+    if (hasInnerRing) shapes += `<circle r="${(14 + rand() * 8).toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="1" opacity="0.5"/>`;
+    shapes += `<circle r="${(4 + rand() * 3).toFixed(1)}" fill="${centerColor}"/>`;
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
+  }
+
+  // 캘린더/월간 리스트용 고정 골드 메달리온 (날짜마다 다르지 않고 항상 동일한 디자인)
+  function medallionSVG(size) {
+    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
+      <circle cx="16" cy="16" r="14.2" fill="none" stroke="#8A691E" stroke-width="1"/>
+      <circle cx="16" cy="16" r="12" fill="none" stroke="#B89552" stroke-width="0.8"/>
+      <circle cx="16" cy="16" r="10.2" fill="#E8D3A0"/>
+      <g stroke="#8A691E" stroke-width="1" opacity="0.65">
+        <line x1="16" y1="4.5" x2="16" y2="7.8"/>
+        <line x1="16" y1="24.2" x2="16" y2="27.5"/>
+        <line x1="4.5" y1="16" x2="7.8" y2="16"/>
+        <line x1="24.2" y1="16" x2="27.5" y2="16"/>
+        <line x1="7.7" y1="7.7" x2="9.9" y2="9.9"/>
+        <line x1="22.1" y1="22.1" x2="24.3" y2="24.3"/>
+        <line x1="24.3" y1="7.7" x2="22.1" y2="9.9"/>
+        <line x1="9.9" y1="22.1" x2="7.7" y2="24.3"/>
+      </g>
+      <circle cx="16" cy="16" r="3.2" fill="#5A431E"/>
+    </svg>`;
   }
 
   function computeStreak(uptoKey) {
@@ -150,6 +218,7 @@
   const perfectBadge = $("#perfectBadge");
   const streakNote = $("#streakNote");
   const mainEl = $("#main");
+  const appEl = $("#app");
   const rapidList = $("#rapidList");
   makeSortable(rapidList, (newOrderIds) => {
     const key = fmtKey(currentDate);
@@ -249,8 +318,8 @@
       titleTextNode.textContent = isSameDay(currentDate, new Date()) ? "오늘 " : "일지 ";
       renderToday();
     }
-    if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; renderMonthly(); }
-    if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; renderHabits(); }
+    if (view === "monthly") { titleTextNode.textContent = "Monthly "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); renderMonthly(); }
+    if (view === "habits") { titleTextNode.textContent = "Habits "; perfectBadge.hidden = true; appEl.classList.remove("day-complete"); renderHabits(); }
     updateSubtitle();
     updateGemCountUI();
   }
@@ -307,7 +376,7 @@
 
     // perfect-day visuals
     const complete = isDayComplete(key);
-    mainEl.classList.toggle("day-complete", complete);
+    appEl.classList.toggle("day-complete", complete);
     if (complete) {
       perfectBadge.hidden = false;
       perfectBadge.innerHTML = generateOrnamentSVG(key, 26);
@@ -688,9 +757,12 @@
       const nextKey = fmtKey(new Date(y, m, d + 1));
       const streakUp = complete && state.completedDays[prevKey] ? " streak-up" : "";
       const streakDown = complete && state.completedDays[nextKey] ? " streak-down" : "";
+      const dateNumInner = complete
+        ? `<span class="medallion">${medallionSVG(24)}</span><span class="num-text">${d}</span>`
+        : `${d}`;
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num ${complete ? "complete-day" + streakUp + streakDown : ""}">${d}</div>
+          <div class="date-num ${complete ? "complete-day" + streakUp + streakDown : ""}">${dateNumInner}</div>
           <div class="date-dow">${DOW[date.getDay()]}</div>
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>

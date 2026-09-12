@@ -374,11 +374,10 @@ main {
   margin: 0 auto;
   position: relative;
 }
-.month-day .date-num.complete-day {
-  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
-  color: #5A431E;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45), 0 1px 2px rgba(90,67,30,0.3);
-}
+.month-day .date-num.complete-day { display: flex; align-items: center; justify-content: center; line-height: normal; }
+.month-day .date-num .medallion { position: absolute; inset: 0; }
+.month-day .date-num .medallion svg { display: block; }
+.month-day .date-num .num-text { position: relative; z-index: 1; font-size: 11.5px; color: #4A3517; }
 .month-day .date-num.complete-day.streak-up::before,
 .month-day .date-num.complete-day.streak-down::after {
   content: "";
@@ -387,6 +386,7 @@ main {
   transform: translateX(-50%);
   width: 3px;
   background: linear-gradient(180deg, #D9BE8A, #B89552);
+  z-index: 0;
 }
 .month-day .date-num.complete-day.streak-up::before { top: -11px; height: 11px; }
 .month-day .date-num.complete-day.streak-down::after { top: 100%; height: 26px; }
@@ -679,20 +679,23 @@ main {
 .dp-cell.is-today:not(.is-selected) { color: var(--accent); font-weight: 700; }
 
 .dp-cell.complete-day {
-  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
+  background: linear-gradient(160deg, #F6EFDD, #E8D3A0 60%, #D4B978);
   color: #5A431E;
   font-weight: 700;
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45);
+  box-shadow: inset 0 0 0 1px #B89552, inset 0 0 0 3px rgba(255,255,255,0.55);
 }
+.dp-cell.complete-day.streak-right,
+.dp-cell.complete-day.streak-left { box-shadow: inset 0 0 0 1px #B89552; }
 .dp-cell.complete-day.streak-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .dp-cell.complete-day.streak-left { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .dp-cell.complete-day.streak-right::after {
   content: "";
   position: absolute;
-  top: 0; bottom: 0; right: -5px;
-  width: 6px;
-  background: linear-gradient(160deg, #F6EACB, #D9BE8A 55%, #B89552);
+  top: 45%; right: -5px;
+  width: 6px; height: 10%;
+  background: #B89552;
+  border-radius: 2px;
 }
 
 /* ---------- GEM / COLLECTIBLE ---------- */
@@ -776,14 +779,35 @@ main {
 .gem-vault-item:active { transform: scale(0.92); }
 
 /* ---------- PERFECT DAY EFFECT ---------- */
-main.day-complete {
+#app.day-complete {
   position: relative;
-  border-radius: 18px;
-  box-shadow: inset 0 0 0 1px rgba(217,190,138,0.4), 0 12px 32px -18px rgba(184,149,82,0.5);
+  box-shadow: inset 0 0 0 1px rgba(217,190,138,0.4);
   background:
-    radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,0.55), transparent 60%),
-    radial-gradient(120% 60% at 85% 10%, rgba(217,190,138,0.35), transparent 55%),
-    linear-gradient(160deg, rgba(246,234,203,0.55), rgba(217,190,138,0.12) 55%, transparent 85%);
+    radial-gradient(120% 40% at 15% 0%, rgba(255,255,255,0.55), transparent 60%),
+    radial-gradient(120% 40% at 85% 8%, rgba(217,190,138,0.35), transparent 55%),
+    linear-gradient(170deg, rgba(246,234,203,0.55), rgba(217,190,138,0.10) 45%, transparent 80%),
+    var(--bg);
+}
+
+.topbar { position: relative; }
+.corner-ornament {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease;
+  z-index: 2;
+}
+.corner-tl { top: 4px; left: 4px; }
+.corner-tr { top: 4px; right: 4px; transform: scaleX(-1); }
+.corner-bl { bottom: 4px; left: 4px; transform: scaleY(-1); }
+.corner-br { bottom: 4px; right: 4px; transform: scale(-1,-1); }
+#app.day-complete .corner-ornament { opacity: 0.85; animation: cornerTwinkle 3.2s ease-in-out infinite; }
+#app.day-complete .corner-tr { animation-delay: .5s; }
+#app.day-complete .corner-bl { animation-delay: 1s; }
+#app.day-complete .corner-br { animation-delay: 1.5s; }
+@keyframes cornerTwinkle {
+  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 0 rgba(217,190,138,0)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px rgba(217,190,138,0.85)); }
 }
 
 .ornament-badge { display: inline-flex; vertical-align: middle; margin-left: 4px; }
