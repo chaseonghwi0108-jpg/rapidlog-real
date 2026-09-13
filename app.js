@@ -67,6 +67,7 @@
     { kind: "round", n: 11, orbitR: 13, petalR: 11, ring: true },                      // 둥근·안쪽 링
     { kind: "leaf",  n: 6,  len: 32,    width: 7,   ring: false },                     // 잎맥 보태니컬
     { kind: "round", n: 8,  orbitR: 11, petalR: 13, ring: false },                     // 촘촘한 블룸
+    { kind: "teardrop", n: 3, len: 33, width: 13, ring: false },                       // 둥근 물방울 클러스터
   ];
   const jitter = (rand, v, amt = 0.14) => v * (1 + (rand() * 2 - 1) * amt);
 
@@ -114,7 +115,7 @@
         const dx = tipX - perpX * 0.3, dy = tipY - perpY * 0.3;
         shapes += `<path d="M0,0 C${c1x.toFixed(1)},${c1y.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} C${dx.toFixed(1)},${dy.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${folder[i % folder.length]}" opacity="0.92"/>`;
       }
-    } else {
+    } else if (sp.kind === "leaf") {
       const n = sp.n;
       const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
       for (let i = 0; i < n; i++) {
@@ -126,6 +127,21 @@
         const color = folder[i % folder.length];
         shapes += `<path d="M0,0 Q${(midX + perpX).toFixed(1)},${(midY + perpY).toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${(midX - perpX).toFixed(1)},${(midY - perpY).toFixed(1)} 0,0 Z" fill="${color}" opacity="0.9"/>`;
         shapes += `<line x1="0" y1="0" x2="${(tipX * 0.85).toFixed(1)}" y2="${(tipY * 0.85).toFixed(1)}" stroke="${centerColor}" stroke-width="0.6" opacity="0.35"/>`;
+      }
+    } else {
+      // teardrop: 중심에서 살짝 벗어난 곳에 둥근 물방울들이 겹쳐 뭉친 클러스터
+      const n = sp.n;
+      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
+      const offset = len * 0.22;
+      for (let i = 0; i < n; i++) {
+        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
+        const baseX = offset * Math.cos(a), baseY = offset * Math.sin(a);
+        const tipX = baseX + len * Math.cos(a), tipY = baseY + len * Math.sin(a);
+        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
+        const midR = len * 0.62;
+        const midX = baseX + midR * Math.cos(a), midY = baseY + midR * Math.sin(a);
+        const color = folder[i % folder.length];
+        shapes += `<path d="M${baseX.toFixed(1)},${baseY.toFixed(1)} Q${(midX + perpX).toFixed(1)},${(midY + perpY).toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${(midX - perpX).toFixed(1)},${(midY - perpY).toFixed(1)} ${baseX.toFixed(1)},${baseY.toFixed(1)} Z" fill="${color}" opacity="0.9"/>`;
       }
     }
 
@@ -139,31 +155,6 @@
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
   }
 
-  // 완료된 날 표시용 레이스 메달리온: 날짜마다 랜덤이 아니라 항상 동일한 하나의 디자인
-  // (달력/습관탭 어디서든 같은 도장처럼 재사용). 스캘럽(물결) 테두리 + 크로스 필리그리 + 진주빛 코어.
-  function laceMedallionSVG(size) {
-    const scallops = 14, rOuter = 15.3, rBump = 1.6, rMid = 12.6, rInner = 10.6;
-    let bumps = "";
-    for (let i = 0; i < scallops; i++) {
-      const a = (i / scallops) * Math.PI * 2;
-      const cx = 16 + rOuter * Math.cos(a), cy = 16 + rOuter * Math.sin(a);
-      bumps += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${rBump}" fill="#D9BE8A"/>`;
-    }
-    let swirls = "";
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
-      const x1 = 16 + 6.5 * Math.cos(a), y1 = 16 + 6.5 * Math.sin(a);
-      const x2 = 16 + rMid * Math.cos(a + 1.0), y2 = 16 + rMid * Math.sin(a + 1.0);
-      swirls += `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} Q16,16 ${x2.toFixed(2)},${y2.toFixed(2)}" fill="none" stroke="#8A691E" stroke-width="0.8" opacity="0.55"/>`;
-    }
-    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
-      ${bumps}
-      <circle cx="16" cy="16" r="${rMid}" fill="none" stroke="#8A691E" stroke-width="1"/>
-      <circle cx="16" cy="16" r="${rInner}" fill="#F3E7C8"/>
-      <ellipse cx="12.3" cy="11.8" rx="5" ry="3.1" fill="#FFFFFF" opacity="0.55"/>
-      ${swirls}
-    </svg>`;
-  }
 
   // ---------- 테마 ----------
   const THEME_KEY = "rapidlog.theme";
@@ -833,7 +824,7 @@
       const entries = state.entries[key] || [];
       const complete = !!state.completedDays[key];
       const li = document.createElement("li");
-      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "");
+      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "") + (complete ? " day-complete-row" : "");
       const entriesHtml = entries.length
         ? entries.slice(0, 4).map(it => `<div class="mini-entry ${it.status === "done" ? "done" : ""}">${glyphFor(it.type, it.status)} ${escapeHtml(it.text)}</div>`).join("")
         : `<div class="empty">—</div>`;
@@ -1004,7 +995,7 @@
             const future = date > today;
             const filled = !!log[key];
             if (!future) { monthAttempt++; elapsed++; if (filled) { monthFilled++; filledCount++; } }
-            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? laceMedallionSVG(22) : ""}</div>`;
+            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? '<svg viewBox="0 0 20 20"><path d="M4 10.5L8 14.5L16 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ""}</div>`;
           }
 
           const stateKey = `${h.id}:${monthKey}`;

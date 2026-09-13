@@ -1,4 +1,4 @@
-const CACHE_NAME = "rapidlog-v12";
+const CACHE_NAME = "rapidlog-v13";
 const ASSETS = [
   "./",
   "./style.css",
