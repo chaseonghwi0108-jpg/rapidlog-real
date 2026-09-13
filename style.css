@@ -384,8 +384,9 @@ main {
 }
 .month-day .date-dow { font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 2px; }
 .month-day .date-num.complete-subtle { background: var(--complete-tint); }
-.date-gem { display: inline-flex; width: 13px; height: 13px; filter: drop-shadow(0 0 1.5px rgba(138,105,30,0.5)); }
-.date-gem svg { display: block; width: 100%; height: 100%; }
+.month-day.complete-day { background: var(--complete-tint); }
+.date-gem { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 3px; }
+.date-gem svg { display: block; width: 26px; height: 26px; }
 .month-day.today .date-num { color: var(--accent); }
 .month-day.weekend .date-dow { color: var(--danger); }
 
@@ -478,12 +479,13 @@ main {
 }
 .habit-cell:active { transform: scale(0.88); }
 .habit-cell.filled {
-  background: var(--surface);
-  border-color: transparent;
-  box-shadow: 0 1px 3px rgba(138,105,30,0.3);
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+  box-shadow: none;
   display: flex; align-items: center; justify-content: center;
 }
-.habit-cell.filled svg { display: block; width: 84%; height: 84%; }
+.habit-cell.filled svg { display: block; width: 55%; height: 55%; }
 .habit-cell.future { background: transparent; border-style: dashed; border-color: var(--border); cursor: default; }
 .habit-cell.is-today { outline: 1.5px solid var(--accent); outline-offset: 1px; }
 
@@ -727,6 +729,7 @@ main {
   border: none;
   cursor: pointer;
   text-align: left;
+  color: var(--ink);
 }
 .collection-count { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .collection-label { font-size: 13px; color: var(--ink-soft); }

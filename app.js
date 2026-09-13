@@ -134,32 +134,6 @@
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
   }
 
-  // 완료된 날 표시용 레이스 메달리온: 날짜마다 랜덤이 아니라 항상 동일한 하나의 디자인
-  // (달력/습관탭 어디서든 같은 도장처럼 재사용). 스캘럽(물결) 테두리 + 크로스 필리그리 + 진주빛 코어.
-  function laceMedallionSVG(size) {
-    const scallops = 14, rOuter = 15.3, rBump = 1.6, rMid = 12.6, rInner = 10.6;
-    let bumps = "";
-    for (let i = 0; i < scallops; i++) {
-      const a = (i / scallops) * Math.PI * 2;
-      const cx = 16 + rOuter * Math.cos(a), cy = 16 + rOuter * Math.sin(a);
-      bumps += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${rBump}" fill="#D9BE8A"/>`;
-    }
-    let swirls = "";
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
-      const x1 = 16 + 6.5 * Math.cos(a), y1 = 16 + 6.5 * Math.sin(a);
-      const x2 = 16 + rMid * Math.cos(a + 1.0), y2 = 16 + rMid * Math.sin(a + 1.0);
-      swirls += `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} Q16,16 ${x2.toFixed(2)},${y2.toFixed(2)}" fill="none" stroke="#8A691E" stroke-width="0.8" opacity="0.55"/>`;
-    }
-    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
-      ${bumps}
-      <circle cx="16" cy="16" r="${rMid}" fill="none" stroke="#8A691E" stroke-width="1"/>
-      <circle cx="16" cy="16" r="${rInner}" fill="#F3E7C8"/>
-      <ellipse cx="12.3" cy="11.8" rx="5" ry="3.1" fill="#FFFFFF" opacity="0.55"/>
-      ${swirls}
-    </svg>`;
-  }
-
   // ---------- 테마 ----------
   const THEME_KEY = "rapidlog.theme";
   const THEMES = [
@@ -826,14 +800,15 @@
       const entries = state.entries[key] || [];
       const complete = !!state.completedDays[key];
       const li = document.createElement("li");
-      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "");
+      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "") + (complete ? " complete-day" : "");
       const entriesHtml = entries.length
         ? entries.slice(0, 4).map(it => `<div class="mini-entry ${it.status === "done" ? "done" : ""}">${glyphFor(it.type, it.status)} ${escapeHtml(it.text)}</div>`).join("")
         : `<div class="empty">—</div>`;
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num${complete ? " complete-subtle" : ""}">${d}</div>
-          <div class="date-dow">${DOW[date.getDay()]}${complete ? `<span class="date-gem">${generateOrnamentSVG(key, 13)}</span>` : ""}</div>
+          <div class="date-num">${d}</div>
+          <div class="date-dow">${DOW[date.getDay()]}</div>
+          ${complete ? `<div class="date-gem">${generateOrnamentSVG(key, 26)}</div>` : ""}
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>
       `;
@@ -997,7 +972,7 @@
             const future = date > today;
             const filled = !!log[key];
             if (!future) { monthAttempt++; elapsed++; if (filled) { monthFilled++; filledCount++; } }
-            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? laceMedallionSVG(22) : ""}</div>`;
+            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ""}</div>`;
           }
 
           const stateKey = `${h.id}:${monthKey}`;
