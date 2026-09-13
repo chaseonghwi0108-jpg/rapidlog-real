@@ -720,16 +720,10 @@
       const date = new Date(y, m, d);
       const key = fmtKey(date);
       const complete = !!state.completedDays[key];
-      const colIndex = (firstDow + d - 1) % 7;
-      let streakCls = "";
-      if (complete) {
-        if (colIndex < 6 && d < daysInMonth && state.completedDays[fmtKey(new Date(y, m, d + 1))]) streakCls += " streak-right";
-        if (colIndex > 0 && d > 1 && state.completedDays[fmtKey(new Date(y, m, d - 1))]) streakCls += " streak-left";
-      }
       const cell = document.createElement("div");
-      cell.className = "dp-cell" + (isSameDay(date, today) ? " is-today" : "") + (isSameDay(date, currentDate) ? " is-selected" : "") + (complete ? " complete-day" + streakCls : "");
+      cell.className = "dp-cell" + (isSameDay(date, today) ? " is-today" : "") + (isSameDay(date, currentDate) ? " is-selected" : "") + (complete ? " complete-day" : "");
       cell.innerHTML = complete
-        ? `<span class="dp-medallion">${laceMedallionSVG(38)}</span><span class="dp-num-text">${d}</span>`
+        ? `<span>${d}</span><span class="dp-gem">${generateOrnamentSVG(key, 10)}</span>`
         : `<span>${d}</span>`;
       cell.addEventListener("click", () => {
         currentDate = date;
@@ -845,7 +839,7 @@
         : `<div class="empty">—</div>`;
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num">${d}</div>
+          <div class="date-num${complete ? " complete-subtle" : ""}">${d}</div>
           <div class="date-dow">${DOW[date.getDay()]}${complete ? `<span class="date-gem">${generateOrnamentSVG(key, 13)}</span>` : ""}</div>
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>
