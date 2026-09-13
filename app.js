@@ -55,118 +55,120 @@
     return [a[0], b[0], a[1], b[1], a[2], b[2]];
   }
 
-  // 이전엔 각도·길이·개수를 전부 연속값으로 무작위 생성해서 가끔 못생긴 결과가 나왔음.
-  // 대신 실제로 예쁜 8가지 "종(species)"을 미리 튜닝해두고, 그 틀 안에서만 살짝(최대 ±14%) 흔들어서
-  // 조합(종 8 × 색 계열/듀오 18 × 링 유무 × 회전각)은 사실상 무한이면서 결과 품질은 보장되게 함.
-  const SPECIES = [
-    { kind: "spike", n: 7,  outerR: 34, innerR: 5,  widthFactor: 0.085, ring: false }, // 뾰족·골드 계열
-    { kind: "round", n: 5,  orbitR: 15, petalR: 15, ring: false },                     // 둥근 로제트
-    { kind: "spike", n: 10, outerR: 29, innerR: 6,  widthFactor: 0.12,  ring: false }, // 중간 촘촘한 핀휠
-    { kind: "chunky", n: 4, len: 30,    width: 20,  ring: true },                      // 통통·안쪽 링·보태니컬
-    { kind: "spike", n: 9,  outerR: 31, innerR: 5,  widthFactor: 0.07,  ring: false }, // 뾰족·가늘게
-    { kind: "round", n: 11, orbitR: 13, petalR: 11, ring: true },                      // 둥근·안쪽 링
-    { kind: "leaf",  n: 6,  len: 32,    width: 7,   ring: false },                     // 잎맥 보태니컬
-    { kind: "round", n: 8,  orbitR: 11, petalR: 13, ring: false },                     // 촘촘한 블룸
-    { kind: "teardrop", n: 3, len: 33, width: 13, ring: false },                       // 둥근 물방울 클러스터
+  // 모양은 랜덤 생성이 아니라 미리 예쁘게 확정해둔 6가지 오너먼트 템플릿 중 하나를 그대로 사용.
+  // 날짜 시드로는 "어떤 템플릿을 쓸지"와 "색을 어떤 순서로 배치할지"만 정해서, 형태는 항상 예쁜 6종 안에서만 나오게 함.
+  const ORNAMENT_TEMPLATES = [
+    // 1. 7조각 뾰족 핀휠
+    (c) => `
+      <polygon points="0,0 -4,-42 10,-38" fill="${c[0]}"/>
+      <polygon points="0,0 10,-38 26,-22" fill="${c[1]}"/>
+      <polygon points="0,0 26,-22 30,4" fill="${c[2]}"/>
+      <polygon points="0,0 30,4 18,30" fill="${c[0]}"/>
+      <polygon points="0,0 18,30 -12,30" fill="${c[3]}"/>
+      <polygon points="0,0 -12,30 -28,4" fill="${c[1]}"/>
+      <polygon points="0,0 -28,4 -22,-24" fill="${c[2]}"/>
+      <circle r="5" fill="${c[3]}"/>`,
+    // 2. 5조각 둥근 로제트(크기 다른 물방울 꽃잎)
+    (c) => `
+      <path d="M0,0 C-14,-14 -14,-40 0,-46 C14,-40 14,-14 0,0 Z" fill="${c[0]}"/>
+      <path d="M0,0 C10,-18 30,-24 38,-14 C44,0 32,16 0,0 Z" fill="${c[1]}"/>
+      <path d="M0,0 C4,20 -6,40 -20,38 C-34,34 -30,14 0,0 Z" fill="${c[2]}"/>
+      <path d="M0,0 C-24,-6 -42,10 -38,24 C-32,38 -14,30 0,0 Z" fill="${c[3]}"/>
+      <path d="M0,0 C-18,-30 -6,-44 6,-38 C16,-32 12,-16 0,0 Z" fill="${c[1]}"/>
+      <circle r="6" fill="${c[3]}"/>`,
+    // 3. 10조각 촘촘한 원반
+    (c) => `
+      <polygon points="0,0 -3,-30 6,-30" fill="${c[0]}"/>
+      <polygon points="0,0 6,-30 20,-22" fill="${c[1]}"/>
+      <polygon points="0,0 20,-22 24,-6" fill="${c[2]}"/>
+      <polygon points="0,0 24,-6 20,12" fill="${c[3]}"/>
+      <polygon points="0,0 20,12 8,24" fill="${c[0]}"/>
+      <polygon points="0,0 8,24 -8,24" fill="${c[1]}"/>
+      <polygon points="0,0 -8,24 -20,12" fill="${c[2]}"/>
+      <polygon points="0,0 -20,12 -24,-6" fill="${c[3]}"/>
+      <polygon points="0,0 -24,-6 -20,-22" fill="${c[0]}"/>
+      <polygon points="0,0 -20,-22 -6,-30" fill="${c[1]}"/>
+      <circle r="4" fill="${c[3]}"/>`,
+    // 4. 4조각 통통 잎사귀 + 안쪽 링
+    (c) => `
+      <path d="M0,0 C-10,-8 -10,-30 0,-40 C10,-30 10,-8 0,0 Z" fill="${c[0]}"/>
+      <path d="M0,0 C8,-12 26,-16 34,-6 C40,4 30,18 0,0 Z" fill="${c[1]}"/>
+      <path d="M0,0 C6,16 0,34 -12,34 C-24,32 -22,14 0,0 Z" fill="${c[2]}"/>
+      <path d="M0,0 C-16,0 -34,10 -30,22 C-26,34 -10,26 0,0 Z" fill="${c[3]}"/>
+      <circle r="14" fill="none" stroke="${c[1]}" stroke-width="0.6"/>
+      <circle r="7" fill="${c[3]}"/>`,
+    // 5. 9조각 가는 뾰족 별
+    (c) => `
+      <polygon points="0,0 -5,-44 4,-44" fill="${c[0]}"/>
+      <polygon points="0,0 4,-44 24,-30" fill="${c[1]}"/>
+      <polygon points="0,0 24,-30 32,-4" fill="${c[2]}"/>
+      <polygon points="0,0 32,-4 24,22" fill="${c[3]}"/>
+      <polygon points="0,0 24,22 4,34" fill="${c[0]}"/>
+      <polygon points="0,0 4,34 -18,26" fill="${c[1]}"/>
+      <polygon points="0,0 -18,26 -28,4" fill="${c[2]}"/>
+      <polygon points="0,0 -28,4 -18,-26" fill="${c[3]}"/>
+      <polygon points="0,0 -18,-26 -5,-44" fill="${c[0]}"/>
+      <circle r="5" fill="${c[3]}"/>`,
+    // 6. 4조각 둥근 잎 + 안쪽 링
+    (c) => `
+      <path d="M0,0 C-16,-10 -18,-36 0,-48 C18,-36 16,-10 0,0 Z" fill="${c[0]}"/>
+      <path d="M0,0 C12,-16 32,-18 38,-4 C42,10 26,20 0,0 Z" fill="${c[1]}"/>
+      <path d="M0,0 C4,18 -4,38 -18,36 C-32,32 -28,12 0,0 Z" fill="${c[2]}"/>
+      <path d="M0,0 C-20,-4 -38,10 -32,24 C-26,36 -10,28 0,0 Z" fill="${c[3]}"/>
+      <circle r="18" fill="none" stroke="${c[2]}" stroke-width="0.6"/>
+      <circle r="8" fill="${c[3]}"/>`,
   ];
-  const jitter = (rand, v, amt = 0.14) => v * (1 + (rand() * 2 - 1) * amt);
 
-  // 날짜(key)를 시드로 매번 다른 형태·색조합이 나오는 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
+  // 날짜(key)를 시드로, 6가지 고정 템플릿 중 하나 + 색 배치 순서만 매번 다르게 뽑아 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
   function generateOrnamentSVG(key, size) {
     const rand = mulberry32(hashSeed(key));
     const folder = generatePalette(rand);
-    const centerColor = folder[Math.floor(rand() * folder.length)];
-    const rotationOffset = rand() * 360;
-    const sp = SPECIES[Math.floor(rand() * SPECIES.length)];
-    let shapes = "";
-
-    if (sp.kind === "spike") {
-      const n = sp.n;
-      const outerR = jitter(rand, sp.outerR), innerR = jitter(rand, sp.innerR);
-      for (let i = 0; i < n; i++) {
-        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const spread = ((360 / n) * sp.widthFactor * Math.PI) / 180;
-        const tipR = outerR * (0.85 + rand() * 0.25);
-        const x1 = innerR * Math.cos(a - spread), y1 = innerR * Math.sin(a - spread);
-        const x2 = tipR * Math.cos(a), y2 = tipR * Math.sin(a);
-        const x3 = innerR * Math.cos(a + spread), y3 = innerR * Math.sin(a + spread);
-        shapes += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} Z" fill="${folder[i % folder.length]}"/>`;
-      }
-    } else if (sp.kind === "round") {
-      const n = sp.n;
-      const orbitR = jitter(rand, sp.orbitR), petalR = jitter(rand, sp.petalR);
-      for (let i = 0; i < n; i++) {
-        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const cx = orbitR * Math.cos(a), cy = orbitR * Math.sin(a);
-        shapes += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${petalR.toFixed(1)}" fill="${folder[i % folder.length]}" opacity="0.88"/>`;
-      }
-    } else if (sp.kind === "chunky") {
-      const n = sp.n;
-      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
-      for (let i = 0; i < n; i++) {
-        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
-        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
-        const midR = len * 0.42;
-        const midX = midR * Math.cos(a), midY = midR * Math.sin(a);
-        const c1x = midX + perpX, c1y = midY + perpY;
-        const c2x = midX - perpX, c2y = midY - perpY;
-        const bx = tipX + perpX * 0.3, by = tipY + perpY * 0.3;
-        const dx = tipX - perpX * 0.3, dy = tipY - perpY * 0.3;
-        shapes += `<path d="M0,0 C${c1x.toFixed(1)},${c1y.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} C${dx.toFixed(1)},${dy.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${folder[i % folder.length]}" opacity="0.92"/>`;
-      }
-    } else if (sp.kind === "leaf") {
-      const n = sp.n;
-      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
-      for (let i = 0; i < n; i++) {
-        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
-        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
-        const midR = len * 0.5;
-        const midX = midR * Math.cos(a), midY = midR * Math.sin(a);
-        const color = folder[i % folder.length];
-        shapes += `<path d="M0,0 Q${(midX + perpX).toFixed(1)},${(midY + perpY).toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${(midX - perpX).toFixed(1)},${(midY - perpY).toFixed(1)} 0,0 Z" fill="${color}" opacity="0.9"/>`;
-        shapes += `<line x1="0" y1="0" x2="${(tipX * 0.85).toFixed(1)}" y2="${(tipY * 0.85).toFixed(1)}" stroke="${centerColor}" stroke-width="0.6" opacity="0.35"/>`;
-      }
-    } else {
-      // teardrop: 중심에서 살짝 벗어난 곳에 둥근 물방울들이 겹쳐 뭉친 클러스터
-      const n = sp.n;
-      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
-      const offset = len * 0.22;
-      for (let i = 0; i < n; i++) {
-        const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const baseX = offset * Math.cos(a), baseY = offset * Math.sin(a);
-        const tipX = baseX + len * Math.cos(a), tipY = baseY + len * Math.sin(a);
-        const perpX = -Math.sin(a) * width, perpY = Math.cos(a) * width;
-        const midR = len * 0.62;
-        const midX = baseX + midR * Math.cos(a), midY = baseY + midR * Math.sin(a);
-        const color = folder[i % folder.length];
-        shapes += `<path d="M${baseX.toFixed(1)},${baseY.toFixed(1)} Q${(midX + perpX).toFixed(1)},${(midY + perpY).toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} Q${(midX - perpX).toFixed(1)},${(midY - perpY).toFixed(1)} ${baseX.toFixed(1)},${baseY.toFixed(1)} Z" fill="${color}" opacity="0.9"/>`;
-      }
+    // 색상 배열을 4개로 맞추고(부족하면 순환) 순서를 섞어서 같은 템플릿이라도 색 배치가 매번 달라지게
+    const colors = [0, 1, 2, 3].map((i) => folder[i % folder.length]);
+    for (let i = colors.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [colors[i], colors[j]] = [colors[j], colors[i]];
     }
-
-    if (sp.ring || rand() < 0.15) {
-      const ringR = 12 + rand() * 12;
-      const thick = rand() < 0.5;
-      const sw = thick ? 2.5 + rand() * 2.5 : 0.8 + rand() * 0.6;
-      shapes += `<circle r="${ringR.toFixed(1)}" fill="none" stroke="${centerColor}" stroke-width="${sw.toFixed(1)}" opacity="${thick ? 0.5 : 0.55}"/>`;
-    }
-    shapes += `<circle r="${(4 + rand() * 3).toFixed(1)}" fill="${centerColor}"/>`;
+    const template = ORNAMENT_TEMPLATES[Math.floor(rand() * ORNAMENT_TEMPLATES.length)];
+    const shapes = template(colors);
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
   }
 
+  // 완료된 날 표시용 레이스 메달리온: 날짜마다 랜덤이 아니라 항상 동일한 하나의 디자인
+  // (달력/습관탭 어디서든 같은 도장처럼 재사용). 스캘럽(물결) 테두리 + 크로스 필리그리 + 진주빛 코어.
+  function laceMedallionSVG(size) {
+    const scallops = 14, rOuter = 15.3, rBump = 1.6, rMid = 12.6, rInner = 10.6;
+    let bumps = "";
+    for (let i = 0; i < scallops; i++) {
+      const a = (i / scallops) * Math.PI * 2;
+      const cx = 16 + rOuter * Math.cos(a), cy = 16 + rOuter * Math.sin(a);
+      bumps += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${rBump}" fill="#D9BE8A"/>`;
+    }
+    let swirls = "";
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
+      const x1 = 16 + 6.5 * Math.cos(a), y1 = 16 + 6.5 * Math.sin(a);
+      const x2 = 16 + rMid * Math.cos(a + 1.0), y2 = 16 + rMid * Math.sin(a + 1.0);
+      swirls += `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} Q16,16 ${x2.toFixed(2)},${y2.toFixed(2)}" fill="none" stroke="#8A691E" stroke-width="0.8" opacity="0.55"/>`;
+    }
+    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
+      ${bumps}
+      <circle cx="16" cy="16" r="${rMid}" fill="none" stroke="#8A691E" stroke-width="1"/>
+      <circle cx="16" cy="16" r="${rInner}" fill="#F3E7C8"/>
+      <ellipse cx="12.3" cy="11.8" rx="5" ry="3.1" fill="#FFFFFF" opacity="0.55"/>
+      ${swirls}
+    </svg>`;
+  }
 
   // ---------- 테마 ----------
   const THEME_KEY = "rapidlog.theme";
   const THEMES = [
     { id: "classic-white", name: "클래식 화이트", group: "light" },
     { id: "ivory-cream", name: "아이보리 크림", group: "light" },
-    { id: "mint-dawn", name: "민트 새벽", group: "light" },
     { id: "lavender-mist", name: "라벤더 미스트", group: "light" },
     { id: "peach-coral", name: "피치 산호", group: "light" },
     { id: "midnight-black", name: "미드나잇 블랙", group: "dark" },
     { id: "deep-forest", name: "딥 포레스트", group: "dark" },
-    { id: "indigo-night", name: "인디고 나이트", group: "dark" },
     { id: "wine-dark", name: "와인 다크", group: "dark" },
     { id: "opal-pearl-dark", name: "오묘한 펄 다크", group: "dark" },
   ];
@@ -824,7 +826,7 @@
       const entries = state.entries[key] || [];
       const complete = !!state.completedDays[key];
       const li = document.createElement("li");
-      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "") + (complete ? " day-complete-row" : "");
+      li.className = "month-day" + (isSameDay(date, today) ? " today" : "") + ((date.getDay() === 0 || date.getDay() === 6) ? " weekend" : "");
       const entriesHtml = entries.length
         ? entries.slice(0, 4).map(it => `<div class="mini-entry ${it.status === "done" ? "done" : ""}">${glyphFor(it.type, it.status)} ${escapeHtml(it.text)}</div>`).join("")
         : `<div class="empty">—</div>`;
@@ -995,7 +997,7 @@
             const future = date > today;
             const filled = !!log[key];
             if (!future) { monthAttempt++; elapsed++; if (filled) { monthFilled++; filledCount++; } }
-            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? '<svg viewBox="0 0 20 20"><path d="M4 10.5L8 14.5L16 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ""}</div>`;
+            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? laceMedallionSVG(22) : ""}</div>`;
           }
 
           const stateKey = `${h.id}:${monthKey}`;
