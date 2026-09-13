@@ -20,82 +20,88 @@
     };
   }
 
-  function hslToHex(h, s, l) {
-    s /= 100; l /= 100;
-    const k = (n) => (n + h / 30) % 12;
-    const a = s * Math.min(l, 1 - l);
-    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-    const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, "0");
-    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  // 미리 잘 어울리게 짜둔 색 계열들. 랜덤으로 아무 색상각(hue)이나 뽑는 대신
+  // 이 목록 안에서만 고르기 때문에 "따로 노는 3색 조합"이 안 나옴.
+  const HUE_FAMILIES = {
+    gold:      ["#FCE9B0", "#E8A33D", "#B9791F"],
+    amber:     ["#FFD79A", "#E8862E", "#A8541A"],
+    sunset:    ["#FFB199", "#E85C4A", "#A6305C"],
+    rose:      ["#FBC7DA", "#E24E86", "#A32E5C"],
+    ocean:     ["#B7E8F5", "#3AA8D8", "#1E6FA6"],
+    teal:      ["#A9EBD9", "#2FA88C", "#1C7A63"],
+    forest:    ["#BFE3A0", "#4C9A4A", "#2C6B2E"],
+    orchid:    ["#D9BFF0", "#8E4FC9", "#5C2E8C"],
+    plum:      ["#E7BEE0", "#A24E9A", "#6E2E6B"],
+    champagne: ["#FFF6DE", "#E8D3A0", "#B08D4E"],
+    ember:     ["#FFD9A0", "#D9713D", "#8C3B1E"],
+    indigo:    ["#C9D3F5", "#5A6FD9", "#33409C"],
+  };
+  // 서로 섞였을 때 실제로 예쁜 궁합만 미리 골라둔 2계열 조합 목록 (아무 계열끼리나 랜덤 조합 X)
+  const DUO_COMBOS = [
+    ["gold", "forest"], ["ocean", "indigo"], ["sunset", "amber"],
+    ["orchid", "plum"], ["rose", "gold"], ["teal", "gold"],
+  ];
+  const FAMILY_NAMES = Object.keys(HUE_FAMILIES);
+
+  // 대부분(65%)은 한 색 계열 안에서만 명암 차이를 주고, 가끔(35%)만 궁합 좋은 두 계열을 섞음.
+  // 어느 쪽이든 "미리 검증된 조합"에서만 뽑기 때문에 결과가 항상 실제로 어울림.
+  function generatePalette(rand) {
+    if (rand() < 0.65) {
+      const name = FAMILY_NAMES[Math.floor(rand() * FAMILY_NAMES.length)];
+      return HUE_FAMILIES[name].slice();
+    }
+    const [nameA, nameB] = DUO_COMBOS[Math.floor(rand() * DUO_COMBOS.length)];
+    const a = HUE_FAMILIES[nameA], b = HUE_FAMILIES[nameB];
+    return [a[0], b[0], a[1], b[1], a[2], b[2]];
   }
 
-  // 기준 색상(hue)을 무작위로 뽑고, 정해둔 배색 관계(삼각/분할보색/보색 등) 중 하나로 나머지 두 색을 결정.
-  // 명도는 밝음/중간/어두움 밴드를 항상 하나씩 배분해서 명암 대비는 보장하되, 어느 색이 어느 밴드를 가질지는 매번 섞음.
-  function generatePalette(rand) {
-    const baseHue = rand() * 360;
-    const schemes = [
-      [0, 120, 240],
-      [0, 150, 210],
-      [0, 180, 30],
-      [0, 40, 200],
-      [0, 90, 270],
-    ];
-    const offsets = schemes[Math.floor(rand() * schemes.length)];
-    const lightBands = [76, 50, 28];
-    const order = [0, 1, 2];
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    return offsets.map((off, i) => {
-      const hue = (baseHue + off) % 360;
-      const sat = 64 + rand() * 22;
-      return hslToHex(hue, sat, lightBands[order[i]]);
-    });
-  }
+  // 이전엔 각도·길이·개수를 전부 연속값으로 무작위 생성해서 가끔 못생긴 결과가 나왔음.
+  // 대신 실제로 예쁜 8가지 "종(species)"을 미리 튜닝해두고, 그 틀 안에서만 살짝(최대 ±14%) 흔들어서
+  // 조합(종 8 × 색 계열/듀오 18 × 링 유무 × 회전각)은 사실상 무한이면서 결과 품질은 보장되게 함.
+  const SPECIES = [
+    { kind: "spike", n: 7,  outerR: 34, innerR: 5,  widthFactor: 0.085, ring: false }, // 뾰족·골드 계열
+    { kind: "round", n: 5,  orbitR: 15, petalR: 15, ring: false },                     // 둥근 로제트
+    { kind: "spike", n: 10, outerR: 29, innerR: 6,  widthFactor: 0.12,  ring: false }, // 중간 촘촘한 핀휠
+    { kind: "chunky", n: 4, len: 30,    width: 20,  ring: true },                      // 통통·안쪽 링·보태니컬
+    { kind: "spike", n: 9,  outerR: 31, innerR: 5,  widthFactor: 0.07,  ring: false }, // 뾰족·가늘게
+    { kind: "round", n: 11, orbitR: 13, petalR: 11, ring: true },                      // 둥근·안쪽 링
+    { kind: "leaf",  n: 6,  len: 32,    width: 7,   ring: false },                     // 잎맥 보태니컬
+    { kind: "round", n: 8,  orbitR: 11, petalR: 13, ring: false },                     // 촘촘한 블룸
+  ];
+  const jitter = (rand, v, amt = 0.14) => v * (1 + (rand() * 2 - 1) * amt);
 
   // 날짜(key)를 시드로 매번 다른 형태·색조합이 나오는 문양 SVG를 생성 (같은 날짜는 항상 같은 결과)
-  // 4가지 실루엣 계열(뾰족/둥근/통통/보태니컬)을 두고 그 안에서만 파라미터를 섞어서,
-  // "색만 다른 같은 모양"이 되지 않고 진짜 서로 다른 형태가 나오게 함.
   function generateOrnamentSVG(key, size) {
     const rand = mulberry32(hashSeed(key));
     const folder = generatePalette(rand);
     const centerColor = folder[Math.floor(rand() * folder.length)];
     const rotationOffset = rand() * 360;
-    const modes = ["spike", "round", "chunky", "botanical"];
-    const mode = modes[Math.floor(rand() * modes.length)];
+    const sp = SPECIES[Math.floor(rand() * SPECIES.length)];
     let shapes = "";
 
-    if (mode === "spike") {
-      // 뾰족한 별/핀휠 조각
-      const n = 6 + Math.floor(rand() * 6); // 6~11
-      const outerR = 30 + rand() * 16;
-      const innerR = 4 + rand() * 5;
-      const widthFactor = 0.08 + rand() * 0.14;
+    if (sp.kind === "spike") {
+      const n = sp.n;
+      const outerR = jitter(rand, sp.outerR), innerR = jitter(rand, sp.innerR);
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
-        const spread = ((360 / n) * widthFactor * Math.PI) / 180;
-        const tipR = outerR * (0.75 + rand() * 0.45);
+        const spread = ((360 / n) * sp.widthFactor * Math.PI) / 180;
+        const tipR = outerR * (0.85 + rand() * 0.25);
         const x1 = innerR * Math.cos(a - spread), y1 = innerR * Math.sin(a - spread);
         const x2 = tipR * Math.cos(a), y2 = tipR * Math.sin(a);
         const x3 = innerR * Math.cos(a + spread), y3 = innerR * Math.sin(a + spread);
         shapes += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} Z" fill="${folder[i % folder.length]}"/>`;
       }
-    } else if (mode === "round") {
-      // 겹쳐진 둥근 원형 꽃잎(로제트)
-      const n = 5 + Math.floor(rand() * 5); // 5~9
-      const orbitR = 13 + rand() * 9;
-      const petalR = 10 + rand() * 9;
+    } else if (sp.kind === "round") {
+      const n = sp.n;
+      const orbitR = jitter(rand, sp.orbitR), petalR = jitter(rand, sp.petalR);
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
         const cx = orbitR * Math.cos(a), cy = orbitR * Math.sin(a);
         shapes += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${petalR.toFixed(1)}" fill="${folder[i % folder.length]}" opacity="0.88"/>`;
       }
-    } else if (mode === "chunky") {
-      // 통통한 하트형 꽃잎 (개수는 적게, 폭은 넓게)
-      const n = 3 + Math.floor(rand() * 3); // 3~5
-      const len = 26 + rand() * 16;
-      const width = 15 + rand() * 10;
+    } else if (sp.kind === "chunky") {
+      const n = sp.n;
+      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
         const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
@@ -109,10 +115,8 @@
         shapes += `<path d="M0,0 C${c1x.toFixed(1)},${c1y.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${tipX.toFixed(1)},${tipY.toFixed(1)} C${dx.toFixed(1)},${dy.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} 0,0 Z" fill="${folder[i % folder.length]}" opacity="0.92"/>`;
       }
     } else {
-      // 보태니컬: 길쭉한 잎사귀 + 잎맥
-      const n = 4 + Math.floor(rand() * 4); // 4~7
-      const len = 30 + rand() * 14;
-      const width = 6 + rand() * 5;
+      const n = sp.n;
+      const len = jitter(rand, sp.len), width = jitter(rand, sp.width);
       for (let i = 0; i < n; i++) {
         const a = ((rotationOffset + i * (360 / n)) * Math.PI) / 180;
         const tipX = len * Math.cos(a), tipY = len * Math.sin(a);
@@ -125,7 +129,7 @@
       }
     }
 
-    if (rand() < 0.5) {
+    if (sp.ring || rand() < 0.15) {
       const ringR = 12 + rand() * 12;
       const thick = rand() < 0.5;
       const sw = thick ? 2.5 + rand() * 2.5 : 0.8 + rand() * 0.6;
@@ -134,6 +138,69 @@
     shapes += `<circle r="${(4 + rand() * 3).toFixed(1)}" fill="${centerColor}"/>`;
     return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}" style="overflow:visible">${shapes}</svg>`;
   }
+
+  // 완료된 날 표시용 레이스 메달리온: 날짜마다 랜덤이 아니라 항상 동일한 하나의 디자인
+  // (달력/습관탭 어디서든 같은 도장처럼 재사용). 스캘럽(물결) 테두리 + 크로스 필리그리 + 진주빛 코어.
+  function laceMedallionSVG(size) {
+    const scallops = 14, rOuter = 15.3, rBump = 1.6, rMid = 12.6, rInner = 10.6;
+    let bumps = "";
+    for (let i = 0; i < scallops; i++) {
+      const a = (i / scallops) * Math.PI * 2;
+      const cx = 16 + rOuter * Math.cos(a), cy = 16 + rOuter * Math.sin(a);
+      bumps += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${rBump}" fill="#D9BE8A"/>`;
+    }
+    let swirls = "";
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
+      const x1 = 16 + 6.5 * Math.cos(a), y1 = 16 + 6.5 * Math.sin(a);
+      const x2 = 16 + rMid * Math.cos(a + 1.0), y2 = 16 + rMid * Math.sin(a + 1.0);
+      swirls += `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} Q16,16 ${x2.toFixed(2)},${y2.toFixed(2)}" fill="none" stroke="#8A691E" stroke-width="0.8" opacity="0.55"/>`;
+    }
+    return `<svg viewBox="0 0 32 32" width="${size}" height="${size}">
+      ${bumps}
+      <circle cx="16" cy="16" r="${rMid}" fill="none" stroke="#8A691E" stroke-width="1"/>
+      <circle cx="16" cy="16" r="${rInner}" fill="#F3E7C8"/>
+      <ellipse cx="12.3" cy="11.8" rx="5" ry="3.1" fill="#FFFFFF" opacity="0.55"/>
+      ${swirls}
+    </svg>`;
+  }
+
+  // ---------- 테마 ----------
+  const THEME_KEY = "rapidlog.theme";
+  const THEMES = [
+    { id: "classic-white", name: "클래식 화이트", group: "light" },
+    { id: "ivory-cream", name: "아이보리 크림", group: "light" },
+    { id: "mint-dawn", name: "민트 새벽", group: "light" },
+    { id: "lavender-mist", name: "라벤더 미스트", group: "light" },
+    { id: "peach-coral", name: "피치 산호", group: "light" },
+    { id: "midnight-black", name: "미드나잇 블랙", group: "dark" },
+    { id: "deep-forest", name: "딥 포레스트", group: "dark" },
+    { id: "indigo-night", name: "인디고 나이트", group: "dark" },
+    { id: "wine-dark", name: "와인 다크", group: "dark" },
+    { id: "opal-pearl-dark", name: "오묘한 펄 다크", group: "dark" },
+  ];
+  function applyTheme(id) {
+    document.documentElement.setAttribute("data-theme", id);
+    try { localStorage.setItem(THEME_KEY, id); } catch (e) {}
+  }
+  function loadTheme() {
+    let id = "classic-white";
+    try { id = localStorage.getItem(THEME_KEY) || id; } catch (e) {}
+    applyTheme(id);
+  }
+  function renderThemeList() {
+    const wrap = $("#themeList");
+    if (!wrap) return;
+    const current = document.documentElement.getAttribute("data-theme") || "classic-white";
+    const row = (t) => `<button class="theme-swatch ${t.id === current ? "active" : ""}" data-theme-id="${t.id}"><span class="theme-dot ${t.id}"></span>${t.name}</button>`;
+    wrap.innerHTML =
+      `<p class="theme-group-label">라이트</p><div class="theme-grid">${THEMES.filter(t => t.group === "light").map(row).join("")}</div>` +
+      `<p class="theme-group-label">다크</p><div class="theme-grid">${THEMES.filter(t => t.group === "dark").map(row).join("")}</div>`;
+    wrap.querySelectorAll("[data-theme-id]").forEach(btn => {
+      btn.addEventListener("click", () => { applyTheme(btn.dataset.themeId); renderThemeList(); });
+    });
+  }
+  loadTheme();
 
   function computeStreak(uptoKey) {
     let streak = 0;
@@ -661,7 +728,9 @@
       }
       const cell = document.createElement("div");
       cell.className = "dp-cell" + (isSameDay(date, today) ? " is-today" : "") + (isSameDay(date, currentDate) ? " is-selected" : "") + (complete ? " complete-day" + streakCls : "");
-      cell.innerHTML = `<span>${d}</span>`;
+      cell.innerHTML = complete
+        ? `<span class="dp-medallion">${laceMedallionSVG(38)}</span><span class="dp-num-text">${d}</span>`
+        : `<span>${d}</span>`;
       cell.addEventListener("click", () => {
         currentDate = date;
         datePickerSheet.hidden = true;
@@ -776,8 +845,8 @@
         : `<div class="empty">—</div>`;
       li.innerHTML = `
         <div class="date-col">
-          <div class="date-num${complete ? " complete-day" : ""}">${d}</div>
-          <div class="date-dow">${DOW[date.getDay()]}</div>
+          <div class="date-num">${d}</div>
+          <div class="date-dow">${DOW[date.getDay()]}${complete ? `<span class="date-gem">${generateOrnamentSVG(key, 13)}</span>` : ""}</div>
         </div>
         <div class="entries">${entriesHtml}${entries.length > 4 ? `<div class="empty">+${entries.length - 4}개 더</div>` : ""}</div>
       `;
@@ -941,7 +1010,7 @@
             const future = date > today;
             const filled = !!log[key];
             if (!future) { monthAttempt++; elapsed++; if (filled) { monthFilled++; filledCount++; } }
-            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일"></div>`;
+            cellsHtml += `<div class="habit-cell ${filled ? "filled" : ""} ${future ? "future" : ""} ${isSameDay(date, today) ? "is-today" : ""}" data-habit="${h.id}" data-key="${key}" title="${d}일">${filled ? laceMedallionSVG(22) : ""}</div>`;
           }
 
           const stateKey = `${h.id}:${monthKey}`;
@@ -1037,7 +1106,7 @@
 
   // ---------- SIDE MENU ----------
   const sideMenuOverlay = $("#sideMenuOverlay");
-  $("#menuBtn").addEventListener("click", () => { closeAllOverlays(); updateGemCountUI(); sideMenuOverlay.hidden = false; });
+  $("#menuBtn").addEventListener("click", () => { closeAllOverlays(); updateGemCountUI(); renderThemeList(); sideMenuOverlay.hidden = false; });
   sideMenuOverlay.addEventListener("click", (e) => { if (e.target === sideMenuOverlay) closeSideMenu(); });
   function closeSideMenu() { sideMenuOverlay.hidden = true; }
 
